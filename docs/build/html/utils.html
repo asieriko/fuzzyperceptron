@@ -1,0 +1,296 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Utilities module &mdash; Perceptrons 0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Fuzzy Integrals module" href="Datasets.html" />
+    <link rel="prev" title="Fuzzy Integrals module" href="FIntegrals.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Perceptrons
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1"><a class="reference internal" href="FIntegrals.html">Fuzzy Integrals module</a></li>
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Utilities module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Datasets.html">Fuzzy Integrals module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Classificator.html">Fuzzy Integrals module</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Perceptrons</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Utilities module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/utils.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="utilities-module">
+<h1>Utilities module<a class="headerlink" href="#utilities-module" title="Permalink to this headline">¶</a></h1>
+<p>Contents:</p>
+<span class="target" id="module-utils"></span><p>Created on Thu Jul 30 18:33:36 2020</p>
+<p>&#64;author: asier</p>
+<dl class="py function">
+<dt id="utils.F">
+<code class="sig-prename descclassname">utils.</code><code class="sig-name descname">F</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">l</span></em>, <em class="sig-param"><span class="n">mu</span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.F" title="Permalink to this definition">¶</a></dt>
+<dd><p><img class="math" src="_images/math/e10c02ced318a1073b22584316dba629a8dfdf80.png" alt="F(\lambda) = \displaystyle\prod_{j=1}^{n}(1+\lambda * \mu_{j}) - \lambda -1"/>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="utils.Fprime">
+<code class="sig-prename descclassname">utils.</code><code class="sig-name descname">Fprime</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">l</span></em>, <em class="sig-param"><span class="n">mu</span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.Fprime" title="Permalink to this definition">¶</a></dt>
+<dd><p><img class="math" src="_images/math/bbb14fb99c2fcd61f6d6bd51b0ac134eb377eda0.png" alt="F'(\lambda) = \sum_{i}(\mu_{i}\displaystyle\prod_{j=1 \neq i}^{n}(1+\lambda * \mu_{j})) - 1"/>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="utils.bintofloat">
+<code class="sig-prename descclassname">utils.</code><code class="sig-name descname">bintofloat</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.bintofloat" title="Permalink to this definition">¶</a></dt>
+<dd><p>float in 0-1 range</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="utils.bisectionLien">
+<code class="sig-prename descclassname">utils.</code><code class="sig-name descname">bisectionLien</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">F</span></em>, <em class="sig-param"><span class="n">W</span></em>, <em class="sig-param"><span class="n">epsilon</span><span class="o">=</span><span class="default_value">1e-06</span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.bisectionLien" title="Permalink to this definition">¶</a></dt>
+<dd><p>Simple algorithm for identifying λ-value for fuzzy measures and fuzzy
+integrals (Chung-Chang Lien &amp; Chie-Bein Chen)</p>
+<p><a class="reference external" href="https://doi.org/10.1080/09720510.2007.10701271">https://doi.org/10.1080/09720510.2007.10701271</a></p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>F</strong> – F(lambda)</p></li>
+<li><p><strong>W</strong> – fuzzy measure</p></li>
+<li><p><strong>epsilon</strong> – precision for te aproximation to F(lambda) = 0</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>lambda that makes F(lambda)=0 with given measure</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="utils.bisectionWang">
+<code class="sig-prename descclassname">utils.</code><code class="sig-name descname">bisectionWang</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">F</span></em>, <em class="sig-param"><span class="n">DF</span></em>, <em class="sig-param"><span class="n">W</span></em>, <em class="sig-param"><span class="n">epsilon</span><span class="o">=</span><span class="default_value">1e-06</span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.bisectionWang" title="Permalink to this definition">¶</a></dt>
+<dd><p>J. C. Wang, T. Y. Chen and H. M. Shen, Using fuzzy densities
+to determine the λ -value for λ -fuzzy measures, in 9th National
+Conference on Fuzzy Theory and its Applications, 2001, pp. 54–59.</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>F</strong> – F(lambda)</p></li>
+<li><p><strong>DF</strong> – F’(lambda)</p></li>
+<li><p><strong>W</strong> – fuzzy measure</p></li>
+<li><p><strong>epsilon</strong> – precision for te aproximation to <img class="math" src="_images/math/42f2315d8e029115eede8877b7d42e87b83a9f4d.png" alt="F(\lambda)=0"/></p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>lambda that makes <img class="math" src="_images/math/42f2315d8e029115eede8877b7d42e87b83a9f4d.png" alt="F(\lambda)=0"/> with given measure</p>
+</dd>
+</dl>
+</dd></dl>
+
+<dl class="py function">
+<dt id="utils.generateGMeasure">
+<code class="sig-prename descclassname">utils.</code><code class="sig-name descname">generateGMeasure</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">mu</span></em>, <em class="sig-param"><span class="n">l</span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.generateGMeasure" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generates fuzzy densities given <img class="math" src="_images/math/e23005df20a48a165a37a491bb5a79c72188bf2f.png" alt="g_{i}=\mu_{i}"/></p>
+<p>only needed <img class="math" src="_images/math/5574872f968eb1dd9809a1c70c6693cb87076185.png" alt="g(E_{j})"/> are calculated, given that the measure is
+sorted to calculate the fuzzy integral</p>
+<p><img class="math" src="_images/math/af8bad6126fbe091ac3c6f33fd18a5385368b423.png" alt="g(E_{j}) = g_{j} + g(E_{j+1})+\lambda g_{j}g(E_{j+1})"/>.</p>
+<p><img class="math" src="_images/math/f37a6dabba10dd078cf0b5e0019599ac35d7fe32.png" alt="g(E_{j}) = \dfrac{1}{\lambda}*[\displaystyle\prod_{j=1}^{n}(1+\lambda * g_{i}) -1]"/>.</p>
+</dd></dl>
+
+<dl class="py function">
+<dt id="utils.individualtofloat">
+<code class="sig-prename descclassname">utils.</code><code class="sig-name descname">individualtofloat</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">precision</span><span class="o">=</span><span class="default_value">10</span></em><span class="sig-paren">)</span><a class="headerlink" href="#utils.individualtofloat" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="Datasets.html" class="btn btn-neutral float-right" title="Fuzzy Integrals module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="FIntegrals.html" class="btn btn-neutral float-left" title="Fuzzy Integrals module" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Asier Urío Larrea
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>

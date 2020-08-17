@@ -1,0 +1,342 @@
+
+
+<!DOCTYPE html>
+<html class="writer-html5" lang="en" >
+<head>
+  <meta charset="utf-8">
+  
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  
+  <title>Fuzzy Integrals module &mdash; Perceptrons 0.1 documentation</title>
+  
+
+  
+  <link rel="stylesheet" href="_static/css/theme.css" type="text/css" />
+  <link rel="stylesheet" href="_static/pygments.css" type="text/css" />
+
+  
+  
+  
+  
+
+  
+  <!--[if lt IE 9]>
+    <script src="_static/js/html5shiv.min.js"></script>
+  <![endif]-->
+  
+    
+      <script type="text/javascript" id="documentation_options" data-url_root="./" src="_static/documentation_options.js"></script>
+        <script src="_static/jquery.js"></script>
+        <script src="_static/underscore.js"></script>
+        <script src="_static/doctools.js"></script>
+        <script src="_static/language_data.js"></script>
+    
+    <script type="text/javascript" src="_static/js/theme.js"></script>
+
+    
+    <link rel="index" title="Index" href="genindex.html" />
+    <link rel="search" title="Search" href="search.html" />
+    <link rel="next" title="Utilities module" href="utils.html" />
+    <link rel="prev" title="Welcome to Perceptrons’s documentation!" href="index.html" /> 
+</head>
+
+<body class="wy-body-for-nav">
+
+   
+  <div class="wy-grid-for-nav">
+    
+    <nav data-toggle="wy-nav-shift" class="wy-nav-side">
+      <div class="wy-side-scroll">
+        <div class="wy-side-nav-search" >
+          
+
+          
+            <a href="index.html" class="icon icon-home" alt="Documentation Home"> Perceptrons
+          
+
+          
+          </a>
+
+          
+            
+            
+              <div class="version">
+                0.1
+              </div>
+            
+          
+
+          
+<div role="search">
+  <form id="rtd-search-form" class="wy-form" action="search.html" method="get">
+    <input type="text" name="q" placeholder="Search docs" />
+    <input type="hidden" name="check_keywords" value="yes" />
+    <input type="hidden" name="area" value="default" />
+  </form>
+</div>
+
+          
+        </div>
+
+        
+        <div class="wy-menu wy-menu-vertical" data-spy="affix" role="navigation" aria-label="main navigation">
+          
+            
+            
+              
+            
+            
+              <ul class="current">
+<li class="toctree-l1 current"><a class="current reference internal" href="#">Fuzzy Integrals module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="utils.html">Utilities module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Datasets.html">Fuzzy Integrals module</a></li>
+<li class="toctree-l1"><a class="reference internal" href="Classificator.html">Fuzzy Integrals module</a></li>
+</ul>
+
+            
+          
+        </div>
+        
+      </div>
+    </nav>
+
+    <section data-toggle="wy-nav-shift" class="wy-nav-content-wrap">
+
+      
+      <nav class="wy-nav-top" aria-label="top navigation">
+        
+          <i data-toggle="wy-nav-top" class="fa fa-bars"></i>
+          <a href="index.html">Perceptrons</a>
+        
+      </nav>
+
+
+      <div class="wy-nav-content">
+        
+        <div class="rst-content">
+        
+          
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+<div role="navigation" aria-label="breadcrumbs navigation">
+
+  <ul class="wy-breadcrumbs">
+    
+      <li><a href="index.html" class="icon icon-home"></a> &raquo;</li>
+        
+      <li>Fuzzy Integrals module</li>
+    
+    
+      <li class="wy-breadcrumbs-aside">
+        
+            
+            <a href="_sources/FIntegrals.rst.txt" rel="nofollow"> View page source</a>
+          
+        
+      </li>
+    
+  </ul>
+
+  
+  <hr/>
+</div>
+          <div role="main" class="document" itemscope="itemscope" itemtype="http://schema.org/Article">
+           <div itemprop="articleBody">
+            
+  <div class="section" id="fuzzy-integrals-module">
+<h1>Fuzzy Integrals module<a class="headerlink" href="#fuzzy-integrals-module" title="Permalink to this headline">¶</a></h1>
+<p>Contents:</p>
+<span class="target" id="module-FIntegrals"></span><p>Created on Thu Jul 23 15:04:07 2020</p>
+<p>&#64;author: asier</p>
+<dl class="py function">
+<dt id="FIntegrals.F2">
+<code class="sig-prename descclassname">FIntegrals.</code><code class="sig-name descname">F2</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">l</span></em>, <em class="sig-param"><span class="n">mu</span></em><span class="sig-paren">)</span><a class="headerlink" href="#FIntegrals.F2" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py class">
+<dt id="FIntegrals.FIntegrals">
+<em class="property">class </em><code class="sig-prename descclassname">FIntegrals.</code><code class="sig-name descname">FIntegrals</code><a class="headerlink" href="#FIntegrals.FIntegrals" title="Permalink to this definition">¶</a></dt>
+<dd><p>Bases: <code class="xref py py-class docutils literal notranslate"><span class="pre">object</span></code></p>
+<p>Class containing several Fuzzy Integrals</p>
+<dl class="py method">
+<dt id="FIntegrals.FIntegrals.ChoquetLambda">
+<code class="sig-name descname">ChoquetLambda</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">mu</span></em>, <em class="sig-param"><span class="n">l</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">verbose</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#FIntegrals.FIntegrals.ChoquetLambda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Choquet Lambda integral</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – values</p></li>
+<li><p><strong>mu</strong> – fuzzy measure</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Choquet lambda-Integral with lambda computed based on <img class="math" src="_images/math/4a3598141469c2555591e66606a1b86d4ec6dca9.png" alt="\mu"/></p>
+</dd>
+</dl>
+<p><img class="math" src="_images/math/f1f24757a60e7b7dc6c5e1d57472765146c2485a.png" alt="CFI(x)_{\mu} = \displaystyle\sum_{i=1}^{n}(f(x_{\sigma_i})-f(x_{\sigma_{(i-1)}}))* g(A_j)"/>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="FIntegrals.FIntegrals.ChoquetTorch">
+<code class="sig-name descname">ChoquetTorch</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">mu</span></em><span class="sig-paren">)</span><a class="headerlink" href="#FIntegrals.FIntegrals.ChoquetTorch" title="Permalink to this definition">¶</a></dt>
+<dd></dd></dl>
+
+<dl class="py method">
+<dt id="FIntegrals.FIntegrals.DFlambda">
+<code class="sig-name descname">DFlambda</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">l</span></em>, <em class="sig-param"><span class="n">mu</span></em><span class="sig-paren">)</span><a class="headerlink" href="#FIntegrals.FIntegrals.DFlambda" title="Permalink to this definition">¶</a></dt>
+<dd><p><img class="math" src="_images/math/160e43ba707712bbd2a3d06ceb6e79cbfe5e7010.png" alt="F'(\lambda) = \sigma_{i}\mu_{i}\displaystyle\prod_{j=1 not i}^{n}(1+\lambda * \mu_{j}) - 1"/>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="FIntegrals.FIntegrals.FLambda">
+<code class="sig-name descname">FLambda</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">l</span></em>, <em class="sig-param"><span class="n">mu</span></em><span class="sig-paren">)</span><a class="headerlink" href="#FIntegrals.FIntegrals.FLambda" title="Permalink to this definition">¶</a></dt>
+<dd><dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>l</strong> – lambda</p></li>
+<li><p><strong>mu</strong> – fuzzy measure (numpy array)</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>F(l)</p>
+</dd>
+</dl>
+<p><img class="math" src="_images/math/e10c02ced318a1073b22584316dba629a8dfdf80.png" alt="F(\lambda) = \displaystyle\prod_{j=1}^{n}(1+\lambda * \mu_{j}) - \lambda -1"/>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="FIntegrals.FIntegrals.GeneralizedChoquetLambda">
+<code class="sig-name descname">GeneralizedChoquetLambda</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">mu</span></em>, <em class="sig-param"><span class="n">F1</span></em>, <em class="sig-param"><span class="n">F2</span></em>, <em class="sig-param"><span class="n">l</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">verbose</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#FIntegrals.FIntegrals.GeneralizedChoquetLambda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Choquet Lambda integral</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – values</p></li>
+<li><p><strong>mu</strong> – fuzzy measure</p></li>
+<li><p><strong>F1</strong> – Function1</p></li>
+<li><p><strong>F2</strong> – Function2</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generalized Choquet lambda-Integral with lambda computed based on <img class="math" src="_images/math/4a3598141469c2555591e66606a1b86d4ec6dca9.png" alt="\mu"/></p>
+</dd>
+</dl>
+<p><img class="math" src="_images/math/0998d4e74b8cbc75c0c6ba82c48529b40629eded.png" alt="CFI(x)_{\mu} = F2_{i=1}^{n}F1(f(x_{\sigma_i})-f(x_{\sigma_{(i-1)}})),g(A_j))"/>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="FIntegrals.FIntegrals.GeneralizedSugenoLambda">
+<code class="sig-name descname">GeneralizedSugenoLambda</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">mu</span></em>, <em class="sig-param"><span class="n">F1</span></em>, <em class="sig-param"><span class="n">F2</span></em>, <em class="sig-param"><span class="n">l</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">verbose</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#FIntegrals.FIntegrals.GeneralizedSugenoLambda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Generalized Sugeno Lambda integral</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – values</p></li>
+<li><p><strong>mu</strong> – fuzzy measure</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Generalized Sugeno lambda-Integral with lambda computed based on <img class="math" src="_images/math/4a3598141469c2555591e66606a1b86d4ec6dca9.png" alt="\mu"/></p>
+</dd>
+</dl>
+<p><img class="math" src="_images/math/3ead4ee2aa1a7da182b013bd96704ee92cf00d62.png" alt="SFI(x)_{\mu} = F2_{i=1}^{n}F1(f(x_{\sigma_i}),g(A_j))"/>.</p>
+</dd></dl>
+
+<dl class="py method">
+<dt id="FIntegrals.FIntegrals.SugenoLambda">
+<code class="sig-name descname">SugenoLambda</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">x</span></em>, <em class="sig-param"><span class="n">mu</span></em>, <em class="sig-param"><span class="n">l</span><span class="o">=</span><span class="default_value">None</span></em>, <em class="sig-param"><span class="n">verbose</span><span class="o">=</span><span class="default_value">False</span></em><span class="sig-paren">)</span><a class="headerlink" href="#FIntegrals.FIntegrals.SugenoLambda" title="Permalink to this definition">¶</a></dt>
+<dd><p>Sugeno Lambda integral</p>
+<dl class="field-list simple">
+<dt class="field-odd">Parameters</dt>
+<dd class="field-odd"><ul class="simple">
+<li><p><strong>x</strong> – values</p></li>
+<li><p><strong>mu</strong> – fuzzy measure</p></li>
+</ul>
+</dd>
+<dt class="field-even">Return type</dt>
+<dd class="field-even"><p>Sugeno lambda-Integral with lambda computed based on <img class="math" src="_images/math/4a3598141469c2555591e66606a1b86d4ec6dca9.png" alt="\mu"/></p>
+</dd>
+</dl>
+<p><img class="math" src="_images/math/231dc58dad427823130f38033dc4542a52e44f89.png" alt="SFI(x)_{\mu} = \displaystyle\wedge_{i=1}^{n}\vee(f(x_{\sigma_i}),g(A_j))"/>.</p>
+</dd></dl>
+
+</dd></dl>
+
+<dl class="py function">
+<dt id="FIntegrals.FLambda">
+<code class="sig-prename descclassname">FIntegrals.</code><code class="sig-name descname">FLambda</code><span class="sig-paren">(</span><em class="sig-param"><span class="n">l</span></em>, <em class="sig-param"><span class="n">mu</span></em><span class="sig-paren">)</span><a class="headerlink" href="#FIntegrals.FLambda" title="Permalink to this definition">¶</a></dt>
+<dd><p><img class="math" src="_images/math/e10c02ced318a1073b22584316dba629a8dfdf80.png" alt="F(\lambda) = \displaystyle\prod_{j=1}^{n}(1+\lambda * \mu_{j}) - \lambda -1"/>.</p>
+</dd></dl>
+
+</div>
+
+
+           </div>
+           
+          </div>
+          <footer>
+  
+    <div class="rst-footer-buttons" role="navigation" aria-label="footer navigation">
+      
+        <a href="utils.html" class="btn btn-neutral float-right" title="Utilities module" accesskey="n" rel="next">Next <span class="fa fa-arrow-circle-right"></span></a>
+      
+      
+        <a href="index.html" class="btn btn-neutral float-left" title="Welcome to Perceptrons’s documentation!" accesskey="p" rel="prev"><span class="fa fa-arrow-circle-left"></span> Previous</a>
+      
+    </div>
+  
+
+  <hr/>
+
+  <div role="contentinfo">
+    <p>
+        
+        &copy; Copyright 2020, Asier Urío Larrea
+
+    </p>
+  </div>
+    
+    
+    
+    Built with <a href="http://sphinx-doc.org/">Sphinx</a> using a
+    
+    <a href="https://github.com/rtfd/sphinx_rtd_theme">theme</a>
+    
+    provided by <a href="https://readthedocs.org">Read the Docs</a>. 
+
+</footer>
+
+        </div>
+      </div>
+
+    </section>
+
+  </div>
+  
+
+  <script type="text/javascript">
+      jQuery(function () {
+          SphinxRtdTheme.Navigation.enable(true);
+      });
+  </script>
+
+  
+  
+    
+   
+
+</body>
+</html>
