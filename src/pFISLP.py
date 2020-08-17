@@ -68,19 +68,12 @@ class FISLP():
         E = 0  #square error between the actual and desired outputs of individual training patterns       
         l = bisectionLien(FIntegrals().FLambda,np.array(weights))
         for xi,yi in zip(self.x,self.y):
-            #CHANGE: FI = FIntegrals()
-            #CHANGE: CFI = FI.ChoquetLambda(xi,weights,l)
             CFI = self.FI(xi,weights,l)
             y_out = 1 if CFI < cutvalue else 0
             if y_out == yi:
             #if ((CFI < cutvalue) and (yi == 1)) or ((CFI >= cutvalue) and (yi == 0)):
                 CA += 1#CA(CFISLPik) correctly clasified instances
             E += (y_out-yi)**2
-            
-            # CFI = self.FI(xi,weights,l)
-            # #CHANGE: CFI = FI.ChoquetLambda(xi,weights,l)
-            # if ((CFI < cutvalue) and (yi == 1)) or ((CFI >= cutvalue) and (yi == 0)):
-            #     CA += 1#CA(CFISLPik) correctly clasified instances
             # E += (CFI-yi)**2
     
         E = E**(1/2)

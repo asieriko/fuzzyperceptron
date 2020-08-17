@@ -13,7 +13,7 @@ from sklearn.model_selection import KFold
 import numpy as np
 
 from Datasets import Datasets
-import pFISLP as CFISLP
+import pFISLP as FISLP
 import utils
 from FIntegrals import FIntegrals
 
@@ -48,11 +48,9 @@ class Classificator():
         successes = 0
         for x_testi,y_testi in zip(X_test,y_test):
             CFI = self.FI(x_testi,weights,l) #With landa less expensive testing...
-            if ((CFI < cutvalue) and (y_testi == 1)) or ((CFI >= cutvalue) and (y_testi == 0)):
-                #print("Success")
+            y_out = 1 if CFI < cutvalue else 0
+            if y_out == y_testi:
                 successes += 1
-            #else:
-                #print("Error")
         return successes,len(X_test)
         
     
@@ -65,7 +63,8 @@ class Classificator():
             successes = 0
             X_train, X_test = x[train_index], x[test_index] 
             y_train, y_test = y[train_index], y[test_index]
-            iFISLP = CFISLP.FISLP(self.NPOP, self.NCON, self.Ndel, self.IND_SIZE, self.Prc, self.Prm, self.wca, self.we, X_train, y_train,self.FI)
+            iFISLP = FISLP.FISLP(self.NPOP, self.NCON, self.Ndel, self.IND_SIZE, 
+                                 self.Prc, self.Prm, self.wca, self.we, X_train, y_train,self.FI)
             best,pop, log = iFISLP.GAFISLP()
             successes,total = self.test(best[0],X_test,y_test)
             # floats = utils.individualtofloat(best[0])
@@ -82,13 +81,17 @@ class Classificator():
             elapsed = time.time() - start
             cum_time += elapsed
             cum_succ.append([successes,total])
-            print("Elapsed time last loop:",format_timespan(elapsed),"Total elapsed time:",format_timespan(cum_time))
-            print(successes,"successes from ",len(X_test)," success rate =",successes*100/len(X_test),"%")
+            print("Elapsed time last loop:",format_timespan(elapsed),
+                  "Total elapsed time:",format_timespan(cum_time))
+            print(successes,"successes from ",len(X_test)," success rate =",
+                  successes*100/len(X_test),"% Accumulated success rate:",
+                  np.average([x/y for x,y in cum_succ])*100,"%")
         
-        print("Average success rate for",splits,"runs:",np.average([x/y for x,y in cum_succ])*100,"% - in",format_timespan(cum_time))
+        print("Average success rate for",splits,"runs:",
+              np.average([x/y for x,y in cum_succ])*100,"% - in",format_timespan(cum_time))
 
 
-    def Appendicitis(x,y,self):       
+    def Appendicitis(self,x,y):       
         successes = 0
         cum_time = 0
         cum_succ = []
@@ -101,9 +104,9 @@ class Classificator():
             y_train = y.copy()
             X_train = np.delete(X_train,i,axis=0)
             y_train = np.delete(y_train,i)
-            iCFISLP =CFISLP.CFISLP(self.NPOP, self.NCON, self.Ndel, self.IND_SIZE, self.Prc, self.Prm, self.wca, self.we, X_train, y_train)
+            iFISLP =FISLP.FISLP(self.NPOP, self.NCON, self.Ndel, self.IND_SIZE, self.Prc, self.Prm, self.wca, self.we, X_train, y_train,self.FI)
             
-            best,pop, log = iCFISLP.GACFISLP()
+            best,pop, log = iFISLP.GAFISLP()
             
             #test trained data
             success,total = self.test(best[0],[X_test],[y_test])
@@ -145,12 +148,12 @@ if __name__ == "__main__":
     # print("---------------- Appendicitis ------------- ")
     # x,y = classi.ds.Appendicitis()
     # classi.Appendicitis()
-    print("---------------- Statlog Heart ------------ ")
-    x,y = classi.ds.StatlogHeart()
-    classi.Folds(x,y)
+    # print("---------------- Statlog Heart ------------ ")
+    # x,y = classi.ds.StatlogHeart()
+    # classi.Folds(x,y)
     print("---------------- Appendicitis ------------- ")
-    x,y = classi.ds.Appendicitis(splits=len(y))
-    classi.Folds(x,y)
+    x,y = classi.ds.Appendicitis()
+    classi.Folds(x,y,splits=len(y))
     # print("---------------- Diabetes ----------------- ")
     # x,y = classi.ds.Diabetes()
     # classi.Folds(x,y)
