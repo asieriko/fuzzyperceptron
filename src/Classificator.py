@@ -129,7 +129,7 @@ class Classificator():
             print("Partial",successes,"successes from ",i+1," success rate =",successes*100/((i+1)),"%")
             elapsed = time.time() - start
             cum_time += elapsed
-            cum_succ.append([successes,total])
+            cum_succ.append([success,total])
             print("Elapsed time last loop:",format_timespan(elapsed),"Total elapsed time:",format_timespan(cum_time))
             
         print(successes,"successes from ",len(x)," success rate =",successes*100/len(x),"%")
@@ -146,14 +146,14 @@ if __name__ == "__main__":
     # x,y = classi.ds.BreastCancer()
     # classi.Folds(x,y)
     # print("---------------- Appendicitis ------------- ")
-    # x,y = classi.ds.Appendicitis()
-    # classi.Appendicitis()
+    x,y = classi.ds.Appendicitis()
+    classi.Appendicitis(x,y)
     # print("---------------- Statlog Heart ------------ ")
     # x,y = classi.ds.StatlogHeart()
     # classi.Folds(x,y)
-    print("---------------- Appendicitis ------------- ")
-    x,y = classi.ds.Appendicitis()
-    classi.Folds(x,y,splits=len(y))
+    # print("---------------- Appendicitis ------------- ")
+    # x,y = classi.ds.Appendicitis()
+    # classi.Folds(x,y,splits=len(y))
     # print("---------------- Diabetes ----------------- ")
     # x,y = classi.ds.Diabetes()
     # classi.Folds(x,y)
