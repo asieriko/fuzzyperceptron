@@ -40,7 +40,9 @@ def generateGMeasure(mu,l):
     nm[-1] = mu[-1]*l+1
     for i in reversed(range(len(mu)-1)):
         nm[i] = nm[i+1]*(1+l*nm[i])
-    nm = np.clip((nm-1)/l,0,1)
+    # nm = [max(0, min(x, 1)) for x in (nm-1)/l] #Needed or not?
+    # nm = np.clip((nm-1)/l, 0, 1) #Needed or not? and slower
+    nm = (nm-1)/l
     nm[0] = 1
   
     return nm
@@ -61,7 +63,7 @@ def bisectionWang(F,DF,W,epsilon=0.000001):
     
     
     """
-    F1 = DF(0,W)
+    F1 = round(DF(0,W),10) # Fprime returns 8e-17 instead of 0
     if F1 == 0:
         return 0
     elif F1 > 0:
@@ -70,7 +72,7 @@ def bisectionWang(F,DF,W,epsilon=0.000001):
     elif F1 < 0:
         p = 1
         m = 0
-        while F1(p,W) >= 0: #FIXME: How exactly?
+        while F(p,W) < 0: #FIXME: How exactly?
         #IF F(p) < 0, let m=p,p=p*2 and continue Step 4 (repeat double p until F(0)<0)    
             m = p
             p = p * 2
