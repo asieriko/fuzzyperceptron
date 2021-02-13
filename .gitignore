@@ -1,8 +1,13 @@
 Tesis
 Src.old
+OLDS
+OtherData
+Results
+htmlcov
 # Byte-compiled / optimized / DLL files
 __pycache__/
 *.py[cod]
+.idea
 
 
 # Sphinx documentation
@@ -11,4 +16,3 @@ docs/_build/
 .spyproject
 .coverage
 
-OtherData

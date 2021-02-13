@@ -10,7 +10,8 @@ import os
 import pandas as pd
 from sklearn.preprocessing import minmax_scale
 
-#https://fizyka.umk.pl/kis-old/projects/datasets.html
+
+# https://fizyka.umk.pl/kis-old/projects/datasets.html
 # + Appendicitis 106 - 7 numerical
 # ?? Breast cancer 286 - 9 numerical ??
 # + Wisconsin breast cancer - 699 - 9 numerical
@@ -70,7 +71,7 @@ class Datasets():
         """
         datafile = os.path.join(self.path, "german.data")
         data = pd.read_csv(datafile, sep=" ", header=None)
-        columns = [0, 2, 3, 4, 5, 6, 8, 9, 11, 13, 14, 16, 18, 19]
+        columns = [0, 2, 3, 5, 6, 8, 9, 11, 13, 14, 16, 18, 19]
         for c in columns:
             data = pd.concat([data, pd.get_dummies(data.iloc[:, c], prefix=c)], axis=1)
         data.drop(data.iloc[:, columns], axis=1, inplace=True)
@@ -127,11 +128,58 @@ class Datasets():
         if normalize:
             data.iloc[:, :] = minmax_scale(data)
         else:
-            #data.iloc[:, 1:-1] = minmax_scale(data.iloc[:, 1:-1])
+            # data.iloc[:, 1:-1] = minmax_scale(data.iloc[:, 1:-1])
             data.iloc[:, -1] = data.iloc[:, -1].apply(lambda x: 0 if x == 2 else 1)
         y = data.iloc[:, -1].values
         x = data.iloc[:, 1:-1].values
 
+        return x, y
+
+    def KaggleClevelandHD(self, normalize=True):
+        """
+
+        Source: https://www.kaggle.com/ronitf/heart-disease-uci
+        Original: https://archive.ics.uci.edu/ml/datasets/Heart+Disease
+
+        Creators:
+
+        1. Hungarian Institute of Cardiology. Budapest: Andras Janosi, M.D.
+        2. University Hospital, Zurich, Switzerland: William Steinbrunn, M.D.
+        3. University Hospital, Basel, Switzerland: Matthias Pfisterer, M.D.
+        4. V.A. Medical Center, Long Beach and Cleveland Clinic Foundation: Robert Detrano, M.D., Ph.D.
+
+        Donor:
+
+        David W. Aha (aha '@' ics.uci.edu) (714) 856-8779
+
+        Parameters
+        ----------
+        normalize : TYPE, optional
+            DESCRIPTION. The default is True.
+            False for original data, not in [0,1] range
+
+        Returns
+        -------
+        x : numpy array
+            Attributes
+        y : numpy array
+            clases
+            
+        data preparation from:
+            https://www.kaggle.com/michawilkosz/all-in-one-eda-xgb-rf-neural-network
+
+        """
+        datafile = os.path.join(self.path, "cleveland_heart_kaggle.csv")
+        data = pd.read_csv(datafile)
+        qualitative = ['sex', 'cp', 'fbs', 'restecg', 'exang', 'slope', 'ca', 'thal', 'target']
+        quantitative = ['age', 'trestbps', 'chol', 'thalach', 'oldpeak']
+
+        y = data['target'].values
+        x = data.drop('target', axis=1)
+        qualitative.remove('target')
+        x = pd.get_dummies(x, columns=qualitative)
+        if normalize:
+            x = minmax_scale(x)
         return x, y
 
     def ProcessedClevelandHD(self, normalize=True):
@@ -166,9 +214,15 @@ class Datasets():
         """
         datafile = os.path.join(self.path, "processed.cleveland.data")
         data = pd.read_csv(datafile, header=None)
-        data.iloc[:, 11] = pd.to_numeric(data.iloc[:, 11], errors='coerce')#?
-        data.iloc[:, 12] = pd.to_numeric(data.iloc[:, 12], errors='coerce')#?
-        data.dropna(inplace=True)#?
+        data.iloc[:, 11] = pd.to_numeric(data.iloc[:, 11], errors='coerce')  # ?
+        data.iloc[:, 12] = pd.to_numeric(data.iloc[:, 12], errors='coerce')  # ?
+        data.dropna(inplace=True)  # ?
+
+        columns = [1, 2, 5, 6, 8, 10, 12]  # 11: ca: number of major vessels (0-3) colored by flourosopy¿?
+        for c in columns:
+            data = pd.concat([data, pd.get_dummies(data.iloc[:, c], prefix=c)], axis=1)
+        data.drop(data.iloc[:, columns], axis=1, inplace=True)
+
         data.iloc[:, -1] = data.iloc[:, -1].apply(lambda x: 0 if x == 0 else 1)
         if normalize:
             data.iloc[:, 1:-1] = minmax_scale(data.iloc[:, 1:-1])
@@ -224,18 +278,55 @@ class Datasets():
             clases
 
         """
-        #FIXME: unfinished
+        # FIXME: unfinished
         datafile = os.path.join(self.path, "dataset_53_heart-statlog.data")
         data = pd.read_csv(datafile, header=None)
-        columns = [2, 6]#binary=.[1, 5, 8]
+        columns = [1, 2, 5, 6, 8, 10, 12]  # Ordered¿?=.10 SLope
         for c in columns:
             data = pd.concat([data, pd.get_dummies(data.iloc[:, c], prefix=c)], axis=1)
         data.drop(data.iloc[:, columns], axis=1, inplace=True)
         if normalize:
             data.iloc[:, :] = minmax_scale(data)
-        y = data.iloc[:, -1].values #!!
+        y = data.iloc[:, -1].values  # !!
         x = data.iloc[:, :-1].values
 
+        return x, y
+
+    def StatLogHeart2(self, normalize=True):
+        """
+
+        Source: https://www.openml.org/d/53
+
+        Parameters
+        ----------
+        normalize : TYPE, optional
+            DESCRIPTION. The default is True.
+            False for original data, not in [0,1] range
+
+        Returns
+        -------
+        x : numpy array
+            Attributes
+        y : numpy array
+            clases
+        """
+        datafile = os.path.join(self.path, "dataset_53_heart-statlog.csv")
+        data = pd.read_csv(datafile)
+        qualitative = ['sex', 'chest', 'fasting_blood_sugar', 'resting_electrocardiographic_results',
+                       'exercise_induced_angina', 'slope', 'thal', 'class']
+        quantitative = ['age', 'resting_blood_pressure', 'serum_cholestoral', 'maximum_heart_rate_achieved', 'oldpeak',
+                        "number_of_major_vessels"]
+        # Slope ordered
+        # "number_of_major_vessels" is qualitative in Clveveland
+
+        data['class'] = data['class'].apply(lambda x: 1 if x == "present" else 0)
+
+        y = data['class'].values
+        x = data.drop('class', axis=1)
+        qualitative.remove('class')
+        x = pd.get_dummies(x, columns=qualitative)
+        if normalize:
+            x = minmax_scale(x)
         return x, y
 
     def Appendicitis(self, normalize=True):
@@ -269,6 +360,45 @@ class Datasets():
 
         return x, y
 
+    def ThyroidBase(self, file, normalize):
+        """
+
+        Source: https://archive.ics.uci.edu/ml/datasets/Thyroid+Disease
+        Ross Quinlan
+
+
+        Parameters
+        ----------
+        normalize : TYPE, optional
+            DESCRIPTION. The default is True.
+            False for original data, not in [0,1] range
+
+        Returns
+        -------
+        x : numpy array
+            Attributes
+        y : numpy array
+            clases
+
+        """
+        datafile = os.path.join(self.path, file)
+        data = pd.read_csv(datafile, sep=" ", header=None)
+        print(file)
+        print(data.info())
+        data = data.iloc[:, 0:22]
+        data.iloc[:, -1] = data.iloc[:, -1].apply(lambda x: 0 if x == 3 else 1)
+        columns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]  # binary data
+        for c in columns:
+            data = pd.concat([data, pd.get_dummies(data.iloc[:, c], prefix=c)], axis=1)
+        data.drop(data.iloc[:, columns], axis=1, inplace=True)
+        print(data.info())
+        if normalize:
+            data.iloc[:, :] = minmax_scale(data)
+        y = data.iloc[:, -1].values
+        x = data.iloc[:, :-1].values
+
+        return x, y
+
     def Thyroid(self, normalize=True):
         """
 
@@ -290,20 +420,40 @@ class Datasets():
             clases
 
         """
-        datafile = os.path.join(self.path, "ann-train.data")
-        data = pd.read_csv(datafile, sep=" ", header=None)
-        data = data.iloc[:, 0:22]
-        data.iloc[:, -1] = data.iloc[:, -1].apply(lambda x: 0 if x == 3 else 1)
-        #columns = [1,2,3,4,5,6,7,8,9,10,11,12,13,14,15]#binary data
-        #for c in columns:
-            #data = pd.concat([data,pd.get_dummies(data.iloc[:,c], prefix=c)],axis=1)
-        #data.drop(data.iloc[:,columns],axis=1, inplace=True)
+        train_datafile = os.path.join(self.path, "ann-train.data")
+        train_data = pd.read_csv(train_datafile, sep=" ", header=None)
+        train_samples = len(train_data)
+        test_datafile = os.path.join(self.path, "ann-test.data")
+        test_data = pd.read_csv(test_datafile, sep=" ", header=None)
+        test_samples = len(test_data)
+        data = pd.concat([train_data, test_data])
+        # I concatenate them, because in test data one of the binary parameters
+        # only has one value and this doesn't generate the other's column and
+        # thus dataframe sizes doesn't match
+        xdata = data.iloc[:, 0:21]
+        ydata = data.iloc[:, 21]
+        ydata = ydata.apply(lambda x: 0 if x == 3 else 1)
+        columns = [1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15]  # binary data
+        for c in columns:
+            xdata = pd.concat([xdata, pd.get_dummies(xdata.iloc[:, c], prefix=c)], axis=1)
+        xdata.drop(xdata.iloc[:, columns], axis=1, inplace=True)
+        train_data = xdata[:train_samples]
+        test_data = xdata[train_samples:]
         if normalize:
-            data.iloc[:, :] = minmax_scale(data)
-        y = data.iloc[:, -1].values
-        x = data.iloc[:, :-1].values
+            train_data = pd.DataFrame(minmax_scale(train_data))
+            test_data = pd.DataFrame(minmax_scale(test_data))
+        y_train = ydata[:train_samples].values
+        x_train = train_data.values
+        y_test = ydata[train_samples:].values
+        x_test = test_data.values
 
-        return x, y
+        return x_train, y_train, x_test, y_test
+
+    def ThyroidO(self, normalize=True):
+        x_train, y_train = self.ThyroidBase("ann-train.data", normalize)
+        x_test, y_test = self.ThyroidBase("ann-test.data", normalize)
+
+        return x_train, y_train, x_test, y_test
 
     def BreastCancer(self, normalize=True):
         """
