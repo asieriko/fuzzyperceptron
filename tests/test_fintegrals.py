@@ -14,7 +14,7 @@ class TestUtils(unittest.TestCase):
         # http://www.diva-portal.org/smash/get/diva2:833444/FULLTEXT01.pdf
         mu = [0.45,0.45,0.3]
         x = [45,50,40]
-        r = FI.FIntegrals().ChoquetLambda(x,mu)
+        r = FI.ChoquetLambda(x,mu)
         expected = 46.295
         self.assertAlmostEqual(r, expected,places=3)
 
@@ -23,7 +23,7 @@ class TestUtils(unittest.TestCase):
         # http://www.diva-portal.org/smash/get/diva2:833444/FULLTEXT01.pdf
         mu = [0.45,0.45,0.3]
         x = [39,58,55]
-        r = FI.FIntegrals().ChoquetLambda(x,mu)
+        r = FI.ChoquetLambda(x,mu)
         expected = 51.3804
         self.assertAlmostEqual(r, expected,places=2)# wiht 3 fails -> 51.3796
 
@@ -33,7 +33,7 @@ class TestUtils(unittest.TestCase):
         # http://www.researchmathsci.org/IJFMAart/IJFMA-v15n2-1.pdf
         mu = [0.8,0.8,0.5,0.7,0.5,0.4]
         x = [45,40,48,45,30,40]
-        r = FI.FIntegrals().ChoquetLambda(x,mu)
+        r = FI.ChoquetLambda(x,mu)
         expected = 46.338515
         self.assertAlmostEqual(r, expected,places=4)
 
@@ -43,7 +43,7 @@ class TestUtils(unittest.TestCase):
         # http://www.researchmathsci.org/IJFMAart/IJFMA-v15n2-1.pdf
         mu = [0.8,0.8,0.5,0.7,0.5,0.4]
         x = [48,50,35,40,43,43]
-        r = FI.FIntegrals().ChoquetLambda(x,mu)
+        r = FI.ChoquetLambda(x,mu)
         expected = 49.365525
         self.assertAlmostEqual(r, expected,places=4)
 
@@ -53,8 +53,8 @@ class TestUtils(unittest.TestCase):
         # http://www.researchmathsci.org/IJFMAart/IJFMA-v15n2-1.pdf
         mu = [0.8,0.8,0.5,0.7,0.5,0.4]
         x = [48,50,35,40,43,43]
-        r = FI.FIntegrals().ChoquetLambda(x,mu)
-        e = FI.FIntegrals().GeneralizedChoquetLambda(mul,sum,x,mu)
+        r = FI.ChoquetLambda(x,mu)
+        e = FI.GeneralizedChoquetLambda(mul,sum,x,mu)
         self.assertAlmostEqual(r, e,places=4)
 
     @unittest.skip("An error in the paper?\
@@ -68,7 +68,7 @@ class TestUtils(unittest.TestCase):
         # 34*1+7*0.9957168+1*0.9896093+1*0.9774167+1*0.8805899+3*0.4
         mu = [0.8,0.8,0.5,0.7,0.5,0.4]
         x = [43,44,41,34,42,47]
-        r = FI.FIntegrals().ChoquetLambda(x,mu)
+        r = FI.ChoquetLambda(x,mu)
         expected = 45.917632
         self.assertAlmostEqual(r, expected,places=4)
 
@@ -77,7 +77,7 @@ class TestUtils(unittest.TestCase):
         # http://www.diva-portal.org/smash/get/diva2:833444/FULLTEXT01.pdf
         mu = [0.93295,0.303787,0.18659]
         x = [1,0.8,0.1]
-        r = FI.FIntegrals().SugenoLambda(x,mu)
+        r = FI.SugenoLambda(x,mu)
         expected = 0.93295
         self.assertAlmostEqual(r, expected,places=3)
 
@@ -86,7 +86,7 @@ class TestUtils(unittest.TestCase):
         # http://www.diva-portal.org/smash/get/diva2:833444/FULLTEXT01.pdf
         mu = [0.93295,0.303787,0.18659]
         x = [0.5,0.6,0.3]
-        r = FI.FIntegrals().SugenoLambda(x,mu)
+        r = FI.SugenoLambda(x,mu)
         expected = 0.500
         self.assertAlmostEqual(r, expected,places=3)
 
@@ -95,7 +95,7 @@ class TestUtils(unittest.TestCase):
         # http://www.diva-portal.org/smash/get/diva2:833444/FULLTEXT01.pdf
         mu = [0.93295,0.303787,0.18659]
         x = [0.3,0.3,0.8]
-        r = FI.FIntegrals().SugenoLambda(x,mu)
+        r = FI.SugenoLambda(x,mu)
         expected = 0.300
         self.assertAlmostEqual(r, expected,places=3)
 
@@ -105,15 +105,15 @@ class TestUtils(unittest.TestCase):
         # http://www.diva-portal.org/smash/get/diva2:833444/FULLTEXT01.pdf
         mu = [0.93295,0.303787,0.18659]
         x = [0.3,0.3,0.8]
-        r = FI.FIntegrals().SugenoLambda(x,mu)
-        e = FI.FIntegrals().GeneralizedSugenoLambda(min,max,x,mu)
+        r = FI.SugenoLambda(x,mu)
+        e = FI.GeneralizedSugenoLambda(min,max,x,mu)
         self.assertAlmostEqual(r, e,places=3)    
 
     
     # @unittest.skip("Does not work with __FLambda")
     def test_F(self):
         mu = np.array([0.5,0.4,0.1])
-        l = FI.FIntegrals().FLambda(0,mu)
+        l = FI.FLambda(0,mu)
         espl= 0
         self.assertEqual(l,espl)
 
@@ -121,7 +121,7 @@ class TestUtils(unittest.TestCase):
     # @unittest.skip("Does not work with __FLambda")
     def test_DF(self):
         mu = np.array([0.5,0.4,0.1])
-        l = FI.FIntegrals().DFlambda(0,mu)
+        l = FI.DFlambda(0,mu)
         espl= 0
         self.assertAlmostEqual(l,espl,places=5)
 

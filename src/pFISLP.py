@@ -26,16 +26,13 @@ from deap import base
 from deap import creator
 from deap import tools
 
-from src.FIntegrals import FIntegrals
+import src.FIntegrals as FI
 from src.utils import individualtofloat, bisectionLien
 
 
-class FISLP():
+class FISLP:
 
-    def __init__(self, NPOP, NCON, Ndel, IND_SIZE, Prc, Prm, wca, we, x, y, FI):
-        # x,y = ds.Appendicitis()
-        # or dataset?
-        # x,y = ds.BreastCancerWisconsin()
+    def __init__(self, NPOP, NCON, Ndel, IND_SIZE, Prc, Prm, wca, we, x, y, FInt):
         # Algorithm parameters
         # 5.2. Pre-specified parameter specifications
         self.NPOP = NPOP  # Population size
@@ -56,7 +53,7 @@ class FISLP():
         self.y = y
 
         # Fuzzy Integral F(x,mu,lambda)
-        self.FI = FI
+        self.FI = FInt
 
         self.configureDEAP()
 
@@ -66,9 +63,9 @@ class FISLP():
         cutvalue = floats[-1]
         CA = 0  # number of correctly classified training patterns
         E = 0  # square error between the actual and desired outputs of individual training patterns
-        l = bisectionLien(FIntegrals().FLambda, np.array(weights))
+        landa = bisectionLien(FI.FLambda, np.array(weights))
         for xi, yi in zip(self.x, self.y):
-            CFI = self.FI(xi, weights, l)
+            CFI = self.FI(xi, weights, landa)
             y_out = 1 if CFI < cutvalue else 0
             if y_out == yi:
                 # if ((CFI < cutvalue) and (yi == 1)) or ((CFI >= cutvalue) and (yi == 0)):
@@ -76,7 +73,7 @@ class FISLP():
             E += (y_out - yi) ** 2
             # E += (CFI-yi)**2
 
-        E = E ** (1 / 2)
+        # E = E ** (1 / 2) # the square error between the actual and desired outputs?
         return self.wca * CA - self.we * E
 
     def fitnessArt(self, individual):
@@ -132,6 +129,10 @@ class FISLP():
             ind.fitness.values = fit
 
     def configureDEAP(self):
+        if "FitnessMax" in globals():
+            del creator.FitnessMax
+        if "Individual" in globals():
+            del creator.Individual
         creator.create("FitnessMax", base.Fitness, weights=(1.0,))
         creator.create("Individual", array.array, typecode='b',
                        fitness=creator.FitnessMax)

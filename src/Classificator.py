@@ -5,22 +5,20 @@ Created on Fri Aug 14 10:40:38 2020
 
 @author: asier
 """
-import time
-from humanfriendly import format_timespan
-
 import torch
-
-from sklearn.model_selection import KFold, train_test_split
 import numpy as np
 
-from Datasets import Datasets
-import pFISLP as FISLP
+from sklearn.model_selection import KFold, train_test_split
+from functools import partial
+
 import utils
-from FIntegrals import FIntegrals
+import pFISLP as FISLP
 import Choquet_integral_nn_torch as CIT
+from Datasets import Datasets
+import src.FIntegrals as FI
 
 
-class CITClassificator():
+class CITClassificator:
     """
     This classificator uses a NN with a Choquet Integral as neuron
     It estimates all parameters of the fuzzy measure, alone and combined
@@ -41,12 +39,11 @@ class CITClassificator():
         return successes, len(x_test)
 
     def Folds(self, x, y, splits=10):
-        kf = KFold(n_splits=splits)
-        cum_time = 0
-        cum_succ = []
+        kf = KFold(n_splits=splits, shuffle=True)
+        stats = utils.LogStats()
         for train_index, test_index in kf.split(x):
-            start = time.time()
-            successes = 0
+            stats.startLogging()
+
             x_train, x_test = x[train_index], x[test_index]
             y_train, y_test = y[train_index], y[test_index]
 
@@ -90,20 +87,16 @@ class CITClassificator():
             # print(FM_learned)
             successes, total = self.test(net, x_test, y_test)
 
-            elapsed = time.time() - start
-            cum_time += elapsed
-            cum_succ.append([successes, total])
-            print("Elapsed time last loop:", format_timespan(elapsed),
-                  "Total elapsed time:", format_timespan(cum_time))
-            print(successes, "successes from ", len(x_test), " success rate =",
-                  successes * 100 / len(x_test), "% Accumulated success rate:",
-                  np.average([x / y for x, y in cum_succ]) * 100, "% in", len(cum_succ), "runs")
+            stats.update(successes, total)
+            stats.printStats()
+            stats.printRepetitionStats()
+            stats.newRepetition()
+        stats.printFinalStats()
 
-        print("Average success rate for", splits, "runs:",
-              np.average([x / y for x, y in cum_succ]) * 100, "% - in", format_timespan(cum_time))
+        return stats.average(), stats
 
 
-class Classificator():
+class Classificator:
     """
     A classificator to test Yi-Chung Hu's article
     It learns alone fuzzy measures and estimates lambda to perform 
@@ -134,69 +127,19 @@ class Classificator():
         floats = utils.individualtofloat(individual)
         weights = floats[:-1]
         cutvalue = floats[-1]
-        FI = FIntegrals()
-        l = utils.bisectionLien(FI.FLambda, np.array(weights))
+        landa = utils.bisectionLien(FI.FLambda, np.array(weights))
         successes = 0
         for x_testi, y_testi in zip(x_test, y_test):
-            CFI = self.FI(x_testi, weights, l)  # With landa less expensive testing...
+            CFI = self.FI(x_testi, weights, landa)  # With landa less expensive testing...
             y_out = 1 if CFI < cutvalue else 0
             if y_out == y_testi:
                 successes += 1
         return successes, len(x_test)
 
-    def Folds(self, x, y, splits=10):
-        kf = KFold(n_splits=splits)
-        cum_time = 0
-        cum_succ = []
-        for train_index, test_index in kf.split(x):
-            start = time.time()
-            successes = 0
-            x_train, x_test = x[train_index], x[test_index]
-            y_train, y_test = y[train_index], y[test_index]
-            iFISLP = FISLP.FISLP(self.NPOP, self.NCON, self.Ndel, self.IND_SIZE,
-                                 self.Prc, self.Prm, self.wca, self.we, x_train, y_train, self.FI)
-            best, pop, log = iFISLP.GAFISLP()
-            successes, total = self.test(best[0], x_test, y_test)
-
-            elapsed = time.time() - start
-            cum_time += elapsed
-            cum_succ.append([successes, total])
-            print("Elapsed time last loop:", format_timespan(elapsed),
-                  "Total elapsed time:", format_timespan(cum_time))
-            print(successes, "successes from ", len(x_test), " success rate =",
-                  successes * 100 / len(x_test), "% Accumulated success rate:",
-                  np.average([x / y for x, y in cum_succ]) * 100, "% in", len(cum_succ), "runs")
-
-        print("Average success rate for", splits, "runs:",
-              np.average([x / y for x, y in cum_succ]) * 100, "% - in", format_timespan(cum_time))
-
-    def Divide(self, x, y, size=5, times=10):
-        cum_time = 0
-        cum_succ = []
-        for i in range(times):
-            x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=size)
-            start = time.time()
-            successes = 0
-            iFISLP = FISLP.FISLP(self.NPOP, self.NCON, self.Ndel, self.IND_SIZE,
-                                 self.Prc, self.Prm, self.wca, self.we, x_train, y_train, self.FI)
-            best, pop, log = iFISLP.GAFISLP()
-            successes, total = self.test(best[0], x_test, y_test)
-
-            elapsed = time.time() - start
-            cum_time += elapsed
-            cum_succ.append([successes, total])
-            print("Elapsed time last loop:", format_timespan(elapsed),
-                  "Total elapsed time:", format_timespan(cum_time))
-            print(successes, "successes from ", len(x_test), " success rate =",
-                  successes * 100 / len(x_test), "% Accumulated success rate:",
-                  np.average([x / y for x, y in cum_succ]) * 100, "% in", len(cum_succ), "runs")
-
-        print("Average success rate for", times, "runs:",
-              np.average([x / y for x, y in cum_succ]) * 100, "% - in", format_timespan(cum_time))
-
-    def NFolds(self, x, y, splits=10, repetitions=10):
+    def KFolds(self, x, y, splits=10, repetitions=10):
         kf = KFold(n_splits=splits, shuffle=True)
         stats = utils.LogStats()
+        stats.addcustomfield("log")
         for rep in range(repetitions):
             for train_index, test_index in kf.split(x):
                 stats.startLogging()
@@ -207,10 +150,11 @@ class Classificator():
                 iFISLP = FISLP.FISLP(self.NPOP, self.NCON, self.Ndel, self.IND_SIZE,
                                      self.Prc, self.Prm, self.wca, self.we, x_train, y_train, self.FI)
                 best, pop, log = iFISLP.GAFISLP()
+                # utils.plotgeneticevolution(log, ["max","avg"],"test"+str(rep))
                 successes, total = self.test(best[0], x_test, y_test)
 
-                stats.update(successes, total)
-                stats.printStats()
+                stats.update(successes, total, custom=[["log", log]])
+                # stats.printStats()
 
             stats.printRepetitionStats()
             stats.newRepetition()
@@ -218,9 +162,9 @@ class Classificator():
 
         return stats.average(), stats
 
-    def NDivide(self, x, y, size=5, times=10):
+    def Divide(self, x, y, size=5, repetitions=10):
         stats = utils.LogStats()
-        for i in range(times):
+        for i in range(repetitions):
             stats.startLogging()
 
             x_train, x_test, y_train, y_test = train_test_split(x, y, test_size=size)
@@ -231,7 +175,24 @@ class Classificator():
             successes, total = self.test(best[0], x_test, y_test)
 
             stats.update(successes, total)
-            stats.printStats()
+            # stats.printStats()
+
+        stats.printRepetitionStats()
+
+        return stats.average(), stats
+
+    def TrainTest(self, x_train, x_test, y_train, y_test, repetitions=10):
+        stats = utils.LogStats()
+        for i in range(repetitions):
+            stats.startLogging()
+
+            iFISLP = FISLP.FISLP(self.NPOP, self.NCON, self.Ndel, self.IND_SIZE,
+                                 self.Prc, self.Prm, self.wca, self.we, x_train, y_train, self.FI)
+            best, pop, log = iFISLP.GAFISLP()
+            successes, total = self.test(best[0], x_test, y_test)
+
+            stats.update(successes, total)
+            # stats.printStats()
 
         stats.printRepetitionStats()
 
@@ -241,59 +202,74 @@ class Classificator():
 # https://stackoverflow.com/questions/14906764/how-to-redirect-stdout-to-both-file-and-console-with-scripting
 
 def run_all():
-    FI = FIntegrals()
     ds = Datasets()
-    fitness_functions = [["Choquet Lambda", FI.ChoquetLambda],
-                        ["Sugeno Lambda", FI.SugenoLambda],
-                        ["Min Choquet Lambda", FI.MinChoquetLambda]]
-    appen = ["Appendicitis", ds.Appendicitis]
-    thyroid = ["Thyroid", ds.Thyroid]
-    datasets = [["GermanCredit", ds.GermanCredit],
-                ["Breast Cancer Wisconsin", ds.BreastCancerWisconsin],
-                ["Breast Cancer", ds.BreastCancer],
-                ["Diabetes", ds.Diabetes],
-                ["Cleveland HD (Kaggle)", ds.KaggleClevelandHD],
-                ["Heart Disease 2", ds.StatLogHeart2]]
-
-    for F in fitness_functions:
-        print("------------------ {} ------------- ".format(F[0]))
-        for data in appen+datasets:
-            print("------------------ {} ------------- ".format(data[0]))
-            classi = Classificator(F)
-            x, y = data[1]()
-            if data[0] == "Appendicitis":
-                avg, stats = classi.NFolds(x, y, splits=len(y), repetitions=2)
-            elif data[0] == "Breast Cancer":
-                av, stats = classi.NDivide(x, y)
-            elif data[0] == "Thyroid":
-                pass
-            else:
-                avg, stats = classi.NFolds(x, y, repetitions=1)
-
-
-from functools import partial
-
-
-def run_bcw():
-    ds = Datasets()
-    FI = FIntegrals()
     fitness_functions = [["Choquet Lambda", FI.ChoquetLambda],
                          ["Sugeno Lambda", FI.SugenoLambda],
                          ["Generalized Sugeno Lambda Sum of products",
                           partial(FI.GeneralizedSugenoLambda, lambda x, y: x * y, sum)],
-                        ["Min Choquet Lambda", FI.MinChoquetLambda]]
-
-    datasets = [["Breast Cancer Wisconsin", ds.BreastCancerWisconsin]]
+                         ["Min Choquet Lambda", FI.MinChoquetLambda]]
+    # appen = ["Appendicitis", ds.Appendicitis]
+    # thyroid = ["Thyroid", ds.Thyroid]
+    datasets = [["Appendicitis", ds.Appendicitis],
+                ["GermanCredit", ds.GermanCredit],
+                ["Breast Cancer Wisconsin", ds.BreastCancerWisconsin],
+                ["Breast Cancer", ds.BreastCancer],
+                ["Diabetes", ds.Diabetes],
+                ["Cleveland HD (Kaggle)", ds.KaggleClevelandHD],
+                ["Heart Disease 2", ds.StatLogHeart2],
+                ["Thyroid Train", ds.ThyroidTrain]]
 
     for F in fitness_functions:
         print("------------------ {} ------------- ".format(F[0]))
         for data in datasets:
             print("------------------ {} ------------- ".format(data[0]))
             classi = Classificator(F[1])
+            if data[0] == "Appendicitis":
+                x, y = data[1]()
+                avg, stats = classi.KFolds(x, y, splits=len(y), repetitions=10)
+            elif data[0] == "Breast Cancer":
+                x, y = data[1]()
+                avg, stats = classi.Divide(x, y)
+            elif data[0] == "Thyroid":
+                x, y, xtest, ytest = data[1]()
+                avg, stats = classi.TrainTest(x, y, xtest, ytest)
+            else:
+                x, y = data[1]()
+                avg, stats = classi.KFolds(x, y, repetitions=10)
+            stats.setExtraFields(["Function", "Dataset"], [F[0], data[0]])
+            stats.saveStatsToFile("../Results/FI_24_02_2021.csv", "FI")
+            print("{} Accuracy: {:.2f}".format(data[0], avg))
+
+
+def run_bcw():
+    ds = Datasets()
+    fitness_functions = [["Choquet Lambda", FI.ChoquetLambda],
+                         ["Sugeno Lambda", FI.SugenoLambda],
+                         ["Generalized Sugeno Lambda Sum of products",
+                          partial(FI.GeneralizedSugenoLambda, lambda x, y: x * y, sum)],
+                         ["Min Choquet Lambda", FI.MinChoquetLambda]]
+
+    datasets = [["Breast Cancer Wisconsin", ds.BreastCancerWisconsin]]
+    for F in fitness_functions:
+        print("------------------ {} ------------- ".format(F[0]))
+        for data in datasets:
+            print("------------------ {} ------------- ".format(data[0]))
+            classi = Classificator(F[1])
             x, y = data[1]()
-            avg, stats = classi.NFolds(x, y, repetitions=1)
-            print(avg)
-            print(stats)
+            if data[0] == "Appendicitis":
+                avg, stats = classi.KFolds(x, y, splits=len(y))
+            else:
+                avg, stats = classi.KFolds(x, y, repetitions=1)
+            stats.setExtraFields(["Function", "Dataset"], [F[0], data[0]])
+            stats.saveStatsToFile("../Results/FI_17_02_2021.csv", "FI")
+            logbook = stats.getcustomfield("log")
+            # print(log)
+            for i, log in enumerate(logbook.values()):
+                utils.plotmultiple(log, ["max", "avg"], F[0] + "-" + data[0] + "- Rep" + str(i),
+                                   "../Results/" + F[0] + "-" + data[0] + "- Rep" + str(i) + ".png")
+                # for rep,log in enumerate(logbook[k]):
+                #     plotgeneticevolution(log, ["max","avg"],F[0]+"-"+data[0]+"- rep:"+str(rep+1))
+            print("Accuracy: {:.2f}".format(avg))
 
 
 def run_choquet_nn():
@@ -305,5 +281,5 @@ def run_choquet_nn():
 
 
 if __name__ == "__main__":
-    run_bcw()
-    # run_all()
+    # run_bcw()
+    run_all()

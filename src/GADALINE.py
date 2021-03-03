@@ -6,10 +6,8 @@ Created on Fri Oct 23 12:02:33 2020
 @author: asier_urio
 """
 
-import time
 import csv
 import os
-from humanfriendly import format_timespan
 from functools import partial
 
 import numpy as np
@@ -17,37 +15,12 @@ import numpy as np
 import torch
 import torch.nn as nn
 
-# from humanfriendly import format_timespan
 from sklearn.model_selection import KFold
-from concurrent.futures import ProcessPoolExecutor
 
 import matplotlib.pyplot as plt
 
-from Datasets import Datasets
+from Datasets import Datasets, Folds
 from utils import LogStats
-
-plotname = ""
-
-
-def my_plot(epochs, loss):
-    # print("Ploting")
-    plt.plot(epochs, loss)
-    plt.title(plotname)
-    plt.xlabel("Epochs")
-    plt.ylabel("Loss")
-
-
-def my_plot2(x, y, name):
-    # print("Ploting")
-    plt.bar(x, y)
-    tics = [i for i in range(len(x))]
-    plt.title(name)
-    plt.xticks(tics, x, rotation='vertical')
-    plt.xlabel("functions")
-    plt.ylabel("accuracy")
-    plt.savefig("/home/asier/Hezkuntza/Ikerketa/Thesis/Results/" + name + run + ".png")
-    plt.show()
-
 
 """
 Function definitions for the generalized adaline operator
@@ -115,10 +88,10 @@ def mmean(x):
     return torch.mean(x, dim=1, keepdim=True)
 
 
-def hamacher(x, y):
+def hamacher(x, y, epsilon=1e-10):
     print("hx", x)
     print("hy", y)
-    return x * y / (x + y - x * y)  # FIXME: xxx
+    return x * y / (epsilon + x + y - x * y)  # epsilon to avoid 0/0 nan
     # For multiple layers
 
 
@@ -154,10 +127,10 @@ def mdot(x, y):
     return xy
 
 
-def mhamacher(x, y):
+def mhamacher(x, y, epsilon=1e-10):
     xu = x.unsqueeze(1)
     xy = torch.mul(xu, y)
-    return xy / (xu + y - xy)
+    return xy / (epsilon + xu + y - xy)  # espsilon to avoid 0/0 nan
     # torch.mul(x.unsqueeze(1),y)/(x.unsqueeze(1) + y - torch.mul(x.unsqueeze(1),y)
 
 
@@ -215,22 +188,15 @@ B = [torch.add]
 g = [mdot, m2min, mavg, t_luckas, mgeom, oxy, m2max, probsum, c_luckas]  # mhamacher
 
 
-# mhamacher genera 0/0 -> nan cuando un valor del input es 0 y w tb
-# Chapuceramente se puede hacer
-# y=0.000001
-# x+y-x*y
-# en los datos de entrada, así no hay 0s
-
-
 def fGADALINE(x, w, t, g, B, F):
     return F(B(g(x, w), t))
 
 
 class NewGADALINE(nn.Module):
-    '''
+    """
     Generalized Adaline Operator
     :math:`P_{\\vec{\\omega}, \\vec{\\theta}}^{g,B,F} (x_1,...,x_n) = F(B_1(g_1(\\omega_1,x_1),\\theta_1),...,B_n(g_n(\\omega_n,x_n),\\theta_n))`.
-    '''
+    """
 
     def __init__(self, g, B, F, input_size, output_size):
         super().__init__()
@@ -251,10 +217,10 @@ class NewGADALINE(nn.Module):
 
 
 class GADALINE(nn.Module):
-    '''
+    """
     Generalized Adaline Operator
     :math:`P_{\\vec{\\omega}, \\vec{\\theta}}^{g,B,F} (x_1,...,x_n) = F(B_1(g_1(\\omega_1,x_1),\\theta_1),...,B_n(g_n(\\omega_n,x_n),\\theta_n))`.
-    '''
+    """
 
     def __init__(self, g, B, F, input_size, output_size):
         super().__init__()
@@ -292,8 +258,8 @@ class SLP(nn.Module):
         super().__init__()
         self.linear = nn.Linear(input_size, output_size)
         # Parameters initialization, same as gadaline
-        self.linear.weight.data.fill_(0)
-        self.linear.bias.data.fill_(0)
+        # self.linear.weight.data.fill_(0)
+        # self.linear.bias.data.fill_(0)
 
     def forward(self, x):
         x = self.linear(x)
@@ -350,13 +316,28 @@ class MLGADALINE(nn.Module):
 
 
 def NNtrain(xdata, ydata, model):
+    """
+    This funcion trains and test provided data under the given model M
+
+    Parameters
+    ----------
+    xdata : torch.tensor
+        dataset's values
+    ydata : torch.tensor
+        dataset's expected results
+    model : torch.nn model
+        The model to perform the training with
+
+    Returns
+    -------
+    model : PyTorch model
+        Trained model.
+    """
     criterion = nn.MSELoss()
     # Original 0.9 -> optimizer = torch.optim.SGD(model.parameters(), lr=0.9, momentum=0.5)
     optimizer = torch.optim.SGD(model.parameters(), lr=0.9, momentum=0.5)
     epochs = 10000
     losses = []
-    yplot = []
-    xplot = []
     for i in range(epochs):
         # for xt,yt in zip(xdata,ydata):
         xt, yt = xdata, ydata
@@ -365,11 +346,6 @@ def NNtrain(xdata, ydata, model):
         # loss.requres_grad = True #FIXME: It worked befor without this¿?
         losses.append(loss)
 
-        if i % 100 == 0:
-            xplot.append(i)
-            yplot.append(loss)
-            my_plot(xplot, yplot)
-
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
@@ -377,32 +353,46 @@ def NNtrain(xdata, ydata, model):
     return model
 
 
-def bFolds(x, y, M, splits=10):
-    kf = KFold(n_splits=splits, shuffle=True)
-    # kf = RepeatedKFold(n_splits=2, n_repeats=2)
-    stats = LogStats()
+def bFolds(x, y, train_index, test_index, M):
+    """
+    This funcion trains and test provided data under the given model M
+
+    Parameters
+    ----------
+    x : torch.tensor
+        dataset's values
+    y : torch.tensor
+        dataset's expected results
+    train_index : list
+        input index to use as train data
+    test_index : torch.tensor
+        input index to use as test data
+    M : torch.nn model
+        The model to perform the training with
+
+    Returns
+    -------
+    model : PyTorch model
+        Trained model.
+    succeses : integer
+        amount of training instances correctly clasified
+    total : integer
+        total training instances
+    stats : statslog object with a summary of accuracies
+        and related data
+    """
     model = M(len(x[0]), 1)
-    for train_index, test_index in kf.split(x):
-        stats.startLogging()
 
-        x_train, x_test = x[train_index], x[test_index]
-        y_train, y_test = y[train_index], y[test_index]
-        xdata = torch.Tensor(x_train)
-        # #FIXME avoid 0/0 in hamacher
-        # eps=0.000001
-        # xdata = xdata+eps-xdata*eps
-        ydata = torch.Tensor(y_train.reshape(len(xdata), 1))
+    x_train, x_test = x[train_index], x[test_index]
+    y_train, y_test = y[train_index], y[test_index]
+    xdata = torch.Tensor(x_train)
+    ydata = torch.Tensor(y_train.reshape(len(xdata), 1))
 
-        model = NNtrain(xdata, ydata, model)
+    model = NNtrain(xdata, ydata, model)
 
-        successes, total = test(x_test, y_test, model)
+    successes, total = test(x_test, y_test, model)
 
-        stats.update(successes, total)
-        # stats.printStats()
-
-    # stats.printRepetitionStats()
-    # stats.printFinalStats()
-    return model, stats
+    return model, successes, total
 
 
 def trainTest(x_train, y_train, x_test, y_test, M):
@@ -410,37 +400,27 @@ def trainTest(x_train, y_train, x_test, y_test, M):
     This funcion trains and test provided data under the given model M
     Parameters
     ----------
-    x_train : TYPE
-        DESCRIPTION.
-    y_train : TYPE
-        DESCRIPTION.
-    x_test : TYPE
-        DESCRIPTION.
-    y_test : TYPE
-        DESCRIPTION.
-    M : TYPE
-        DESCRIPTION.
+    x_train : torch.tensor
+        train dataset's values
+    y_train : torch.tensor
+        train dataset's expected results
+    x_test : torch.tensor
+        test dataset's values
+    y_test : torch.tensor
+        test dataset's expected results
+    M : torch.nn model
+        The model to perform the training with
 
     Returns
     -------
     model : PyTorch model
         Trained model.
-    av : float (0-100)
-        Accuracy: Average successes in the train data.
-    ds : TYPE
-        Standar deviation (not aplicable in this case because only one 
-                           train/test cicle is done""
-    ti : float
-        Elapsed time (train+test).
-
+    stats : statslog object with a summary of accuracies
+        and related data
     """
     model = M(len(x_train[0]), 1)
     xdata = torch.Tensor(x_train)
     ydata = torch.Tensor(y_train.reshape(len(xdata), 1))
-
-    # #FIXME avoid 0/0 in hamacher
-    # eps=0.000001
-    # xdata = xdata+eps-xdata*eps
 
     stats = LogStats()
 
@@ -462,6 +442,25 @@ def calculate_accuracy(y_true, y_pred):
 
 
 def test(x_test, y_test, model):
+    """
+    This funcion test provided data against the given model M
+
+    Parameters
+    ----------
+    x_test : torch.tensor
+        dataset's values
+    y_test : torch.tensor
+        dataset's expected results
+    model : torch.nn model
+        The model to perform the test with
+
+    Returns
+    -------
+    succ : integer
+        amount of succesfully classified instances
+    total : integer
+        total instances
+    """
     # for name, param in model.named_parameters():
     #     if param.requires_grad:
     #         print(name, param.data)
@@ -474,119 +473,68 @@ def test(x_test, y_test, model):
 
 ds = Datasets()
 
-run = "-MGAD-12-02-2021"
+run = "-folds-25-02-2021"
 
-appen = ["Appendicitis", ds.Appendicitis]
-thyroid = ["Thyroid", ds.Thyroid]
-datasets = [["GermanCredit", ds.GermanCredit],
-            ["Breast Cancer Wisconsin", ds.BreastCancerWisconsin],
-            ["Breast Cancer", ds.BreastCancer],
-            ["Diabetes", ds.Diabetes],
-            ["Cleveland HD (Kaggle)", ds.KaggleClevelandHD],
-            ["Heart Disease 2", ds.StatLogHeart2]]
+datasets = [["GermanCredit", ds.GermanCredit, 75.4, 73.1],
+            ["Breast Cancer W", ds.BreastCancerWisconsin, 96.1, 96.5],
+            ["Breast Cancer", ds.BreastCancer, 71.3, 75.3],
+            ["Statlog HD", ds.StatLogHeart2, 84.5, 82.9],
+            ["Appendicitis", ds.Appendicitis, 85.8, 85.8]]
 
-bad = [["Cleveland HD", ds.ProcessedClevelandHD],
-       ["Heart Disease", ds.StatlogHeart]]
-
-
-# Global iteration
-
-def testDatasetsSLP():
-    for t in datasets:
-        print("SLP Results for {} dataset:".format(t[0]), end=" ")
-        x, y = t[1]()
-        avg = []
-        for i in range(10):
-            m, stats = bFolds(x, y, SLP)
-            avg.append(stats.average(0))
-        print("Accuracy: {:.2f}".format(np.average(avg)))
-
-    for t in datasets:
-        print("MLP Results for {} dataset:".format(t[0]), end=" ")
-        x, y = t[1]()
-        avg = []
-        for i in range(10):
-            m, stats = bFolds(x, y, MLP)
-            avg.append(stats.average(0))
-        print("Accuracy: {:.2f}".format(np.average(avg)))
-
-    # Appendicitis leave-one out
-    print("SLP Results for Appendicitis dataset:", end=" ")
-    x, y = ds.Appendicitis()
-    m, stats = bFolds(x, y, SLP, len(y))
-    print("Accuracy: {:.2f}".format(stats.average(0)))
-
-    print("MLP Results for Appendicitis dataset:", end=" ")
-    x, y = ds.Appendicitis()
-    m, stats = bFolds(x, y, MLP, len(y))
-    print("Accuracy: {:.2f}".format(stats.average(0)))
-
-    # Thyroid train vs test data
-    print("SLP Results for Thyroid dataset:", end=" ")
-    x_train, y_train, x_test, y_test = ds.Thyroid()
-    m, stats = trainTest(x_train, y_train, x_test, y_test, SLP)
-    print("Accuracy: {:.2f}".format(stats.average(0)))
-
-    print("MLP Results for Thyroid dataset:", end=" ")
-    x_train, y_train, x_test, y_test = ds.Thyroid()
-    m, stats = trainTest(x_train, y_train, x_test, y_test, MLP)
-    print("Accuracy: {:.2f}".format(stats.average(0)))
-
-    # Thyroid mix all data an 10-folds
-    # print("SLP Results for Thyroid dataset:", end=" ")
-    # x_train, y_train, x_test, y_test = ds.Thyroid()
-    # x = np.concatenate((x_train, x_test))
-    # y = np.concatenate((y_train, y_test))
-    # avg = []
-    # for i in range(10):
-    #      m, stats = bFolds(x, y, SLP)
-    #      avg.append(stats.average(0))
-    # print("Accuracy: {:.2f}".format(np.average(avg)))
-    #
-    # print("MLP Results for Thyroid dataset:", end=" ")
-    # avg = []
-    # for i in range(10):
-    #      m, stats = bFolds(x, y, SLP)
-    #      avg.append(stats.average(0))
-    # print("Accuracy: {:.2f}".format(np.average(avg)))
+datasetsnoonline = [["Diabetes", ds.Diabetes, 73.6, 76.8],
+                    ["Cleveland HD ", ds.KaggleClevelandHD, 83.5, 82.1]]
+# dsthyroid = ["Thyroid",ds.Thyroid,97.4,96.2]
+datasets += datasetsnoonline
 
 
-testDatasetsSLP()
-
-end
-
-for t in tests2:
-    xd = []
-    yd = []
-    print("-- " + t[0] + " -- ")
-    print(" ----- SLP: Base ---- ")
-    plotname = t[0] + " - MLP"
-    x, y = t[1]()
+def train_dataset(x, y, model, k=10, r=10):
     avg = []
-    for i in range(10):
-        m, stats = bFolds(x, y, SLP)  # , len(y))
-        avg.append(stats.average(0))
-    print(avg)
-    print(np.average(avg))
-    with open(os.path.join("..", "Results", t[0] + run + ".csv"), "a") as f:
-        fwriter = csv.writer(f, delimiter=",")
-        fwriter.writerow([t[0], "SLP", "", "", "", stats.average(), stats.elapsed()])
-    plt.show()
-    xd.append("SLP")
-    yd.append(stats.average())
+    for i in range(r):
+        avgfold = []
+        kf = KFold(n_splits=k, shuffle=True)
+        for train_index, test_index in kf.split(x):
+            x_train, x_test = x[train_index], x[test_index]
+            y_train, y_test = y[train_index], y[test_index]
+            xdata = torch.Tensor(x_train)
+            ydata = torch.Tensor(y_train.reshape(len(xdata), 1))
 
-    print(" ----- MLP 3: Base ---- ")
-    # plotname = t[0] + " - MLP"
-    x, y = t[1]()
-    m, stats = bFolds(x, y, MLP)  # , len(y))
-    with open(os.path.join("..", "Results", t[0] + run + ".csv"), "a") as f:
-        fwriter = csv.writer(f, delimiter=",")
-        fwriter.writerow([t[0], "MLP", "", "", "", stats.average(), stats.elapsed()])
-    plt.show()
-    xd.append("MLP")
-    yd.append(stats.average())
-    asfd
-    print(" ----- MGADALINE ---- ")
+            model = NNtrain(x_train, y_train, model)
+            suc, total = test(x_test, y_test, model)
+
+            avgfold.append(suc / total)
+        avg.append(avgfold)
+
+    return np.average(avg)
+
+
+def testGADALINE():
+    for model in ["SLP", "MLP"]:
+        ptm = SLP if model == "SLP" else MLP
+        for t in datasets:
+            xd = []
+            yd = []
+            print("-- " + t[0] + " -- ")
+            print("------ {}: Base -----".format(model))
+            plotname = t[0] + " - " + model
+            x, y = t[1]()
+            avg = []
+            for i in range(10):
+                avgfold = []
+                for train_index, test_index in Folds(t[0],i):
+                    m, suc, total = bFolds(x, y, train_index, test_index, ptm)
+                    avgfold.append((suc / total).tolist())
+                avg.append(avgfold*100)
+                print(t[0],i,avgfold)
+            # print(avg)
+            print("{}: {} repetitions: {}% accuracy".format(t[0],i+1,np.average(avg)))
+            with open(os.path.join("..", "Results", t[0] + run + ".csv"), "a") as f:
+                fwriter = csv.writer(f, delimiter=",")
+                fwriter.writerow([t[0], model, "", "", "", np.average(avg)])
+            plt.show()
+            xd.append(model)
+            yd.append(np.average(avg))
+
+    print("------ MGADALINE -----")
 
     # print("-- Comprobar: g = *, B = +, F = + -- ")
     # gadaline = partial(GADALINE,dot,torch.add,msum)
@@ -594,44 +542,54 @@ for t in tests2:
     # with open(t[0]+run+".csv", "a") as f:
     #     fwriter = csv.writer(f,delimiter=",")
     #     fwriter.writerow([t[0],"GADALINE","dot","add","msum",stats.average(),stats.elapsed()])
+    for t in datasets:
+        x, y = t[1]()
+        print("-- Functions -- ")
+        for gi in g:
+            for Bi in B:
+                for Fi in F:
+                    print("gi = {}\tBi = {}\tFi = {}".format(gi.__name__, Bi.__name__, Fi.__name__))
+                    plotname = t[0] + " - gi = {}\nBi = {}\nFi = {}\n".format(gi.__name__, Bi.__name__, Fi.__name__)
+                    gadaline = partial(MLGADALINE, gi, Bi, Fi)
+                    avg = []
+                    for i in range(10):
+                        avgfold = []
+                        for train_index, test_index in Folds(t[0],i):
+                            x_train, x_test = x[train_index], x[test_index]
+                            y_train, y_test = y[train_index], y[test_index]
+                            # _, sucpt, totpt = bFolds(x_train, y_train, x_test, y_test, m)
+                            m, suc, total = bFolds(x, y, train_index, test_index, gadaline)
+                            avgfold.append((suc*100 / total).tolist())
+                        avg.append(avgfold)
+                        print(t[0], i, avgfold)
+                        with open(os.path.join("..", "Results", t[0] + run + ".csv"), "a") as f:
+                            fwriter = csv.writer(f, delimiter=",")
+                            fwriter.writerow(
+                                [t[0], "M3GADALINE", gi.__name__, Bi.__name__, Fi.__name__, np.average(avg)])
+                    print("{}: {} repetitions: {}% accuracy".format(t[0], i + 1, np.average(avg)))
 
-    print("-- Functions -- ")
+
+def thyroid():
+    print(" ----- SLP: Base ---- ")
+    print("-- Thyroid -- ")
+    x_train, y_train, x_test, y_test = ds.Thyroid()
+    m, stats = trainTest(x_train, y_train, x_test, y_test, SLP)
+    with open("resultsThyroidN.csv", "a") as f:
+        fwriter = csv.writer(f, delimiter=",")
+        fwriter.writerow(["Thyroid", "SLP", ",""", "", stats.average(), stats.elapsed()])
+
     for gi in g:
         for Bi in B:
             for Fi in F:
-                print("gi = {}\nBi = {}\nFi = {}\n".format(gi.__name__, Bi.__name__, Fi.__name__))
-                plotname = t[0] + " - gi = {}\nBi = {}\nFi = {}\n".format(gi.__name__, Bi.__name__, Fi.__name__)
-                gadaline = partial(MLGADALINE, gi, Bi, Fi)
-                m, stats = bFolds(x, y, gadaline)  # , len(y))
-                with open(os.path.join("..", "Results", t[0] + run + ".csv"), "a") as f:
+                print("\n gi = {}\nBi = {}\nFi = {}".format(gi.__name__, Bi.__name__, Fi.__name__))
+                gadaline = partial(GADALINE, gi, Bi, Fi)
+                m, stats = trainTest(x_train, y_train, x_test, y_test, gadaline)
+                with open(os.path.join("..", "Results", "resultsThyroidN" + run + ".csv"), "a") as f:
                     fwriter = csv.writer(f, delimiter=",")
                     fwriter.writerow(
-                        [t[0], "M3GADALINE", gi.__name__, Bi.__name__, Fi.__name__, stats.average(), stats.elapsed()])
-                plt.show()
-                xd.append("{}-{}-{}".format(gi.__name__, Bi.__name__, Fi.__name__))
-                yd.append(stats.average())
-    my_plot2(xd, yd, t[0])
+                        ["Thyroid", "GADALINE", gi.__name__, Bi.__name__, Fi.__name__, stats.average(),
+                         stats.elapsed()])
 
-s = input("Seguir? (S/N)")
-if s != "S":
-    quit()
-### Global iteration ends
 
-print(" ----- SLP: Base ---- ")
-print("-- Thyroid -- ")
-x_train, y_train, x_test, y_test = ds.Thyroid()
-m, stats = trainTest(x_train, y_train, x_test, y_test, SLP)
-with open("resultsThyroidN.csv", "a") as f:
-    fwriter = csv.writer(f, delimiter=",")
-    fwriter.writerow(["Thyroid", "SLP", ",""", "", stats.average(), stats.elapsed()])
-
-for gi in g:
-    for Bi in B:
-        for Fi in F:
-            print("\n gi = {}\nBi = {}\nFi = {}".format(gi.__name__, Bi.__name__, Fi.__name__))
-            gadaline = partial(GADALINE, gi, Bi, Fi)
-            m, stats = trainTest(x_train, y_train, x_test, y_test, gadaline)
-            with open(os.path.join("..", "Results", "resultsThyroidN" + run + ".csv"), "a") as f:
-                fwriter = csv.writer(f, delimiter=",")
-                fwriter.writerow(
-                    ["Thyroid", "GADALINE", gi.__name__, Bi.__name__, Fi.__name__, stats.average(), stats.elapsed()])
+if __name__=="__main__":
+    testGADALINE()

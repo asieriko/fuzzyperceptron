@@ -9,7 +9,44 @@ import os
 
 import pandas as pd
 from sklearn.preprocessing import minmax_scale
+from sklearn.model_selection import KFold
 
+from src.DataFolds import DataFolds
+
+
+def generatefolds():
+    ds = Datasets()
+
+    datasets = [["GermanCredit", ds.GermanCredit, 75.4, 73.1],
+                ["Breast Cancer W", ds.BreastCancerWisconsin, 96.1, 96.5],
+                ["Breast Cancer", ds.BreastCancer, 71.3, 75.3],
+                ["Statlog HD", ds.StatLogHeart2, 84.5, 82.9],
+                ["Appendicitis", ds.Appendicitis, 85.8, 85.8],
+                ["Thyroid",ds.ThyroidTrain,97.4,96.2],
+                ["Diabetes", ds.Diabetes, 73.6, 76.8],
+                ["Cleveland HD ", ds.KaggleClevelandHD, 83.5, 82.1]]
+
+    folds = {}
+    print("DataFolds=",end="")
+    for t in datasets:
+        # print("-- " + t[0] + " -- ")
+        x, y = t[1]()
+        folds[t[0]] = {}
+        for i in range(10):
+            folds[t[0]][i] = []
+            k = len(x) if t[0] == "Appendicitis" else 10
+            kf = KFold(n_splits=k, shuffle=True)
+            for train_index, test_index in kf.split(x):
+                # print(train_index,test_index)
+                folds[t[0]][i].append([list(train_index),list(test_index)])
+
+    # json.dumps(folds)
+    print(folds)
+    # pickle.dump(folds,open("DataFolds.py","w"))
+
+
+def Folds(dataset,repetition):
+    return DataFolds[dataset][repetition]
 
 # https://fizyka.umk.pl/kis-old/projects/datasets.html
 # + Appendicitis 106 - 7 numerical
@@ -21,7 +58,7 @@ from sklearn.preprocessing import minmax_scale
 # Statlog heart disease 270 - 6 numerical - 7 categorical
 # Thyroid 3772 -  6 numerical - 15 categorical (binary)
 
-class Datasets():
+class Datasets:
 
     def __init__(self, path=None):
         if path:
@@ -53,7 +90,8 @@ class Datasets():
 
         The rows represent the actual classification and the columns the predicted classification.
 
-        It is worse to class a customer as good when they are bad (5), than it is to class a customer as bad when they are good (1).
+        It is worse to class a customer as good when they are bad (5), than it is to class a
+        customer as bad when they are good (1).
 
         Parameters
         ----------
@@ -71,14 +109,14 @@ class Datasets():
         """
         datafile = os.path.join(self.path, "german.data")
         data = pd.read_csv(datafile, sep=" ", header=None)
+        data.iloc[:, -1] = data.iloc[:, -1].apply(lambda x: 0 if x == 1 else 1)
         columns = [0, 2, 3, 5, 6, 8, 9, 11, 13, 14, 16, 18, 19]
-        for c in columns:
-            data = pd.concat([data, pd.get_dummies(data.iloc[:, c], prefix=c)], axis=1)
-        data.drop(data.iloc[:, columns], axis=1, inplace=True)
+        data.columns = [*data.columns[:-1], 'Target']
+        data = pd.get_dummies(data, columns=columns)
         if normalize:
             data.iloc[:, :] = minmax_scale(data)
-        y = data.iloc[:, 6].values
-        x = data.drop(data.columns[[6]], axis=1).values
+        y = data['Target'].values
+        x = data.drop(["Target"], axis=1).values
 
         return x, y
 
@@ -167,7 +205,6 @@ class Datasets():
             
         data preparation from:
             https://www.kaggle.com/michawilkosz/all-in-one-eda-xgb-rf-neural-network
-
         """
         datafile = os.path.join(self.path, "cleveland_heart_kaggle.csv")
         data = pd.read_csv(datafile)
@@ -180,55 +217,6 @@ class Datasets():
         x = pd.get_dummies(x, columns=qualitative)
         if normalize:
             x = minmax_scale(x)
-        return x, y
-
-    def ProcessedClevelandHD(self, normalize=True):
-        """
-
-        Source: https://archive.ics.uci.edu/ml/datasets/Heart+Disease
-
-        Creators:
-
-        1. Hungarian Institute of Cardiology. Budapest: Andras Janosi, M.D.
-        2. University Hospital, Zurich, Switzerland: William Steinbrunn, M.D.
-        3. University Hospital, Basel, Switzerland: Matthias Pfisterer, M.D.
-        4. V.A. Medical Center, Long Beach and Cleveland Clinic Foundation: Robert Detrano, M.D., Ph.D.
-
-        Donor:
-
-        David W. Aha (aha '@' ics.uci.edu) (714) 856-8779
-
-        Parameters
-        ----------
-        normalize : TYPE, optional
-            DESCRIPTION. The default is True.
-            False for original data, not in [0,1] range
-
-        Returns
-        -------
-        x : numpy array
-            Attributes
-        y : numpy array
-            clases
-
-        """
-        datafile = os.path.join(self.path, "processed.cleveland.data")
-        data = pd.read_csv(datafile, header=None)
-        data.iloc[:, 11] = pd.to_numeric(data.iloc[:, 11], errors='coerce')  # ?
-        data.iloc[:, 12] = pd.to_numeric(data.iloc[:, 12], errors='coerce')  # ?
-        data.dropna(inplace=True)  # ?
-
-        columns = [1, 2, 5, 6, 8, 10, 12]  # 11: ca: number of major vessels (0-3) colored by flourosopy¿?
-        for c in columns:
-            data = pd.concat([data, pd.get_dummies(data.iloc[:, c], prefix=c)], axis=1)
-        data.drop(data.iloc[:, columns], axis=1, inplace=True)
-
-        data.iloc[:, -1] = data.iloc[:, -1].apply(lambda x: 0 if x == 0 else 1)
-        if normalize:
-            data.iloc[:, 1:-1] = minmax_scale(data.iloc[:, 1:-1])
-        y = data.iloc[:, -1].values
-        x = data.iloc[:, 1:-1].values
-
         return x, y
 
     def Diabetes(self, normalize=True):
@@ -255,39 +243,6 @@ class Datasets():
         if normalize:
             data.iloc[:, :] = minmax_scale(data)
         y = data.iloc[:, -1].values
-        x = data.iloc[:, :-1].values
-
-        return x, y
-
-    def StatlogHeart(self, normalize=True):
-        """
-
-        Source: https://www.openml.org/d/53
-
-        Parameters
-        ----------
-        normalize : TYPE, optional
-            DESCRIPTION. The default is True.
-            False for original data, not in [0,1] range
-
-        Returns
-        -------
-        x : numpy array
-            Attributes
-        y : numpy array
-            clases
-
-        """
-        # FIXME: unfinished
-        datafile = os.path.join(self.path, "dataset_53_heart-statlog.data")
-        data = pd.read_csv(datafile, header=None)
-        columns = [1, 2, 5, 6, 8, 10, 12]  # Ordered¿?=.10 SLope
-        for c in columns:
-            data = pd.concat([data, pd.get_dummies(data.iloc[:, c], prefix=c)], axis=1)
-        data.drop(data.iloc[:, columns], axis=1, inplace=True)
-        if normalize:
-            data.iloc[:, :] = minmax_scale(data)
-        y = data.iloc[:, -1].values  # !!
         x = data.iloc[:, :-1].values
 
         return x, y
@@ -335,7 +290,8 @@ class Datasets():
 
         This dataset was proposed in S. M. Weiss, and C. A. Kulikowski, Computer Systems That Learn (1991).
 
-        The data represents 7 medical measures taken over 106 patients on which the class label represents if the patient has appendicitis (class label 1) or not (class label 0).
+        The data represents 7 medical measures taken over 106 patients on which the class label
+        represents if the patient has appendicitis (class label 1) or not (class label 0).
 
         Parameters
         ----------
@@ -354,8 +310,8 @@ class Datasets():
         datafile = os.path.join(self.path, "appendicitis.dat")
         data = pd.read_csv(datafile, skiprows=12, header=None)
         if normalize:
-            data.iloc[:, 1:-1] = minmax_scale(data.iloc[:, 1:-1])
-        x = data.iloc[:, 1:-1].values
+            data.iloc[:, 0:-1] = minmax_scale(data.iloc[:, 0:-1])
+        x = data.iloc[:, 0:-1].values
         y = data.iloc[:, -1].values
 
         return x, y
@@ -369,6 +325,8 @@ class Datasets():
 
         Parameters
         ----------
+        file : filename
+            name of the dataset file
         normalize : TYPE, optional
             DESCRIPTION. The default is True.
             False for original data, not in [0,1] range
@@ -404,8 +362,8 @@ class Datasets():
 
         Source: https://archive.ics.uci.edu/ml/datasets/Thyroid+Disease
         Ross Quinlan
-
-
+        https://archive.ics.uci.edu/ml/machine-learning-databases/thyroid-disease/ann-train.data
+        https://archive.ics.uci.edu/ml/machine-learning-databases/thyroid-disease/ann-test.data
         Parameters
         ----------
         normalize : TYPE, optional
@@ -448,6 +406,10 @@ class Datasets():
         x_test = test_data.values
 
         return x_train, y_train, x_test, y_test
+
+    def ThyroidTrain(self, normalize=True):
+        x_train, y_train, x_test, y_test = self.Thyroid(normalize=True)
+        return x_train, y_train
 
     def ThyroidO(self, normalize=True):
         x_train, y_train = self.ThyroidBase("ann-train.data", normalize)
@@ -498,3 +460,108 @@ class Datasets():
         x = data.iloc[:, 1:].values
 
         return x, y
+
+    def StatlogHeart(self, normalize=True):
+        """
+        FIXME: DELETE WHEN StatlogHeart2 is confirmed
+
+        Source: https://www.openml.org/d/53
+
+        Parameters
+        ----------
+        normalize : TYPE, optional
+            DESCRIPTION. The default is True.
+            False for original data, not in [0,1] range
+
+        Returns
+        -------
+        x : numpy array
+            Attributes
+        y : numpy array
+            clases
+
+        """
+        # FIXME: unfinished
+        datafile = os.path.join(self.path, "dataset_53_heart-statlog.data")
+        data = pd.read_csv(datafile, header=None)
+        columns = [1, 2, 5, 6, 8, 10, 12]  # Ordered¿?=.10 SLope
+        for c in columns:
+            data = pd.concat([data, pd.get_dummies(data.iloc[:, c], prefix=c)], axis=1)
+        data.drop(data.iloc[:, columns], axis=1, inplace=True)
+        if normalize:
+            data.iloc[:, :] = minmax_scale(data)
+        y = data.iloc[:, -1].values  # !!
+        x = data.iloc[:, :-1].values
+
+        return x, y
+
+    def ProcessedClevelandHD(self, normalize=True):
+        """
+        FIXME: DELETE WHEN KaggleClevelandHD is confirmed
+
+        Source: https://archive.ics.uci.edu/ml/datasets/Heart+Disease
+
+        Creators:
+
+        1. Hungarian Institute of Cardiology. Budapest: Andras Janosi, M.D.
+        2. University Hospital, Zurich, Switzerland: William Steinbrunn, M.D.
+        3. University Hospital, Basel, Switzerland: Matthias Pfisterer, M.D.
+        4. V.A. Medical Center, Long Beach and Cleveland Clinic Foundation: Robert Detrano, M.D., Ph.D.
+
+        Donor:
+
+        David W. Aha (aha '@' ics.uci.edu) (714) 856-8779
+
+        Parameters
+        ----------
+        normalize : TYPE, optional
+            DESCRIPTION. The default is True.
+            False for original data, not in [0,1] range
+
+        Returns
+        -------
+        x : numpy array
+            Attributes
+        y : numpy array
+            clases
+
+        """
+        datafile = os.path.join(self.path, "processed.cleveland.data")
+        data = pd.read_csv(datafile, header=None)
+        data.iloc[:, 11] = pd.to_numeric(data.iloc[:, 11], errors='coerce')  # ?
+        data.iloc[:, 12] = pd.to_numeric(data.iloc[:, 12], errors='coerce')  # ?
+        data.dropna(inplace=True)  # ?
+
+        columns = [1, 2, 5, 6, 8, 10, 12]  # 11: ca: number of major vessels (0-3) colored by flourosopy¿?
+        for c in columns:
+            data = pd.concat([data, pd.get_dummies(data.iloc[:, c], prefix=c)], axis=1)
+        data.drop(data.iloc[:, columns], axis=1, inplace=True)
+
+        data.iloc[:, -1] = data.iloc[:, -1].apply(lambda x: 0 if x == 0 else 1)
+        if normalize:
+            data.iloc[:, 0:-1] = minmax_scale(data.iloc[:, 0:-1])
+        y = data.iloc[:, -1].values
+        x = data.iloc[:, 0:-1].values
+
+        return x, y
+
+    def GermanCredit2(self, normalize=True):
+        # FIXME: DELETE WHEN GermanCredit is confirmed
+
+        datafile = os.path.join(self.path, "german.data")
+        data = pd.read_csv(datafile, sep=" ", header=None)
+        data.iloc[:, -1] = data.iloc[:, -1].apply(lambda x: 0 if x == 1 else 1)
+        columns = [0, 2, 3, 5, 6, 8, 9, 11, 13, 14, 16, 18, 19]
+        for c in columns:
+            data = pd.concat([data, pd.get_dummies(data.iloc[:, c], prefix=c)], axis=1)
+        data.drop(data.iloc[:, columns], axis=1, inplace=True)
+        if normalize:
+            data.iloc[:, :] = minmax_scale(data)
+        y = data.iloc[:, 6].values
+        x = data.drop(data.columns[[6]], axis=1).values
+
+        return x, y
+
+
+if __name__=="__main__":
+    generatefolds()

@@ -11,261 +11,263 @@ import numpy as np
 from src.utils import bisectionLien, generateGMeasure
 
 
-class FIntegrals():
-    """
-     Class containing several Fuzzy Integrals
+def ChoquetGeneric(F, *args):
+    return F(*args)
+
+
+def ChoquetTorch(x, mu):
+    x = torch.tensor(x)
+    w = torch.rand(2 ** x.size()[0])
+    mu = torch.tensor(mu)
+    mudic = {'0': 0}
+
+    def genmudic(mu, n):
+        e1 = mu[0]
+        for el in mu[1:]:
+            pass
+
+    w[0] = 0
+    w[-1] = 1
+    xsorted = x.sort()
+    # values=tensor([1, 2, 4, 5, 9]),
+    # indices=tensor([0, 2, 1, 4, 3]))
+    print(xsorted)
+    print(xsorted.values)
+    print(xsorted.indices)
+    print(w)
+    choquet = 0
+    for i in range(len(x)):
+        print("Measure", xsorted.indices[i:].sort().values)
+        choquet += xsorted.values[i] * w[i]
+
+
+def ChoquetLambda(x, mu, l=None, verbose=False):
+    """Choquet Lambda integral
+
+    :param x: values
+    :param mu: fuzzy measure
+    :param l: value of lambda, if None (Default) it's get calculated
+    :param verbose: If true prints data to the console
+
+    :rtype: Choquet lambda-Integral with lambda computed based on :math:`\\mu`
+
+
+    :math:`CFI(x)_{\\mu} = \\displaystyle\\sum_{i=1}^{n}(f(x_{\\sigma_i})-f(x_{\\sigma_{(i-1)}}))* g(A_j)`.
 
     """
 
-    def ChoquetGeneric(self, F, *args):
-        return F(*args)
+    x = np.array(x)
+    mu = np.array(mu)
 
-    def ChoquetTorch(self, x, mu):
-        x = torch.tensor(x)
-        w = torch.rand(2 ** x.size()[0])
-        mu = torch.tensor(mu)
-        mudic = {'0': 0}
+    # sortedindex = np.argsort(x)
+    # xsorted = np.take(x, sortedindex)
+    # musorted = np.take(mu, sortedindex)
 
-        def genmudic(mu, n):
-            e1 = mu[0]
-            for el in mu[1:]:
-                pass
+    sortedindex = list(zip(x, mu))
+    sortedindex.sort()  # key=lambda x: x[0]
+    xsorted, musorted = zip(*sortedindex)
+    xsorted, musorted = np.array(xsorted), np.array(musorted)
 
-        w[0] = 0
-        w[-1] = 1
-        xsorted = x.sort()
-        # values=tensor([1, 2, 4, 5, 9]),
-        # indices=tensor([0, 2, 1, 4, 3]))
-        print(xsorted)
-        print(xsorted.values)
-        print(xsorted.indices)
-        print(w)
-        choquet = 0
-        for i in range(len(x)):
-            print("Measure", xsorted.indices[i:].sort().values)
-            choquet += xsorted.values[i] * w[i]
+    if l is None:
+        l = bisectionLien(FLambda, mu)
 
-    def ChoquetLambda(self, x, mu, l=None, verbose=False):
-        """Choquet Lambda integral
+    nmu = generateGMeasure(musorted, l)
 
-        :param x: values
-        :param mu: fuzzy measure
-        :param l: value of lambda, if None (Default) it's get calculated
-        :param verbose: If true prints data to the console
+    # choquet = sum(np.diff(np.append([0], xsorted)) * nmu) # Twice as slow
+    choquet = np.dot((np.append(xsorted[0], xsorted[1:] - xsorted[0:-1])), nmu)
 
-        :rtype: Choquet lambda-Integral with lambda computed based on :math:`\\mu`
+    if verbose:
+        print("X:", x, "X sorted:", xsorted)
+        print("mu", mu, "Mu sorted:", musorted)
+        print("Lambda:", l)
+        print("Generated measures:", nmu)
+        print("Choquet:", choquet)
 
+    return choquet
 
-        :math:`CFI(x)_{\\mu} = \\displaystyle\\sum_{i=1}^{n}(f(x_{\\sigma_i})-f(x_{\\sigma_{(i-1)}}))* g(A_j)`.
 
-        """
+def MinChoquetLambda(x, mu, l=None, verbose=False):
+    """Choquet Lambda integral
 
-        x = np.array(x)
-        mu = np.array(mu)
+    :param x: values
+    :param mu: fuzzy measure
+    :param l: value of lambda, if None (Default) it's get calculated
+    :param verbose: If true prints data to the console
 
-        # sortedindex = np.argsort(x)
-        # xsorted = np.take(x, sortedindex)
-        # musorted = np.take(mu, sortedindex)
+    :rtype: Choquet lambda-Integral but changing the product with the minimum 
+    with lambda computed based on :math:`\\mu`
 
-        sortedindex = list(zip(x, mu))
-        sortedindex.sort()  # key=lambda x: x[0]
-        xsorted, musorted = zip(*sortedindex)
-        xsorted, musorted = np.array(xsorted), np.array(musorted)
+    :math:`CFI(x)_{\\mu} = \\sum_{i=1}^{n}min(f(x_{\\sigma_i})-f(x_{\\sigma_{(i-1)}})),g(A_j))`.
 
-        if l is None:
-            l = bisectionLien(self.FLambda, mu)
+    """
 
-        nmu = generateGMeasure(musorted, l)
+    x = np.array(x)
+    mu = np.array(mu)
 
-        # choquet = sum(np.diff(np.append([0], xsorted)) * nmu) # Twice as slow
-        choquet = np.dot((np.append(xsorted[0], xsorted[1:] - xsorted[0:-1])), nmu)
+    sortedindex = np.argsort(x)
+    xsorted = np.take(x, sortedindex)
+    musorted = np.take(mu, sortedindex)
 
-        if verbose:
-            print("X:", x, "X sorted:", xsorted)
-            print("mu", mu, "Mu sorted:", musorted)
-            print("Lambda:", l)
-            print("Generated measures:", nmu)
-            print("Choquet:", choquet)
+    if l is None:
+        l = bisectionLien(FLambda, mu)
+    nmu = generateGMeasure(musorted, l)
 
-        return choquet
+    gchoquet = sum(np.minimum(np.diff(np.append([0], xsorted)), nmu))
+    # For numpy >= 1.16
+    # gchoquet = F2(F1(np.diff(xsorted,prepend=[0]),nmu))
 
-    def MinChoquetLambda(self, x, mu, l=None, verbose=False):
-        """Choquet Lambda integral
+    if verbose:
+        print("X:", x, "X sorted:", xsorted)
+        print("mu", mu, "Mu sorted:", musorted)
+        print("Lambda:", l)
+        print("Generated measures:", nmu)
+        print("Choquet:", gchoquet)
 
-        :param x: values
-        :param mu: fuzzy measure
-        :param l: value of lambda, if None (Default) it's get calculated
-        :param verbose: If true prints data to the console
+    return gchoquet
 
-        :rtype: Choquet lambda-Integral but changing the product with the minimum 
-        with lambda computed based on :math:`\\mu`
 
-        :math:`CFI(x)_{\\mu} = \\sum_{i=1}^{n}min(f(x_{\\sigma_i})-f(x_{\\sigma_{(i-1)}})),g(A_j))`.
+def GeneralizedChoquetLambda(F1, F2, x, mu, l=None, verbose=False):
+    """Choquet Lambda integral
 
-        """
+    :param x: values
+    :param mu: fuzzy measure
+    :param F1: Function1
+    :param F2: Function2
+    :param l: value of lambda, if None (Default) it's get calculated
+    :param verbose: If true prints data to the console
 
-        x = np.array(x)
-        mu = np.array(mu)
+    :rtype: Generalized Choquet lambda-Integral with lambda computed based on :math:`\\mu`
 
-        sortedindex = np.argsort(x)
-        xsorted = np.take(x, sortedindex)
-        musorted = np.take(mu, sortedindex)
+    :math:`CFI(x)_{\\mu} = F2_{i=1}^{n}F1(f(x_{\\sigma_i})-f(x_{\\sigma_{(i-1)}})),g(A_j))`.
 
-        if l is None:
-            l = bisectionLien(self.FLambda, mu)
-        nmu = generateGMeasure(musorted, l)
+    """
 
-        gchoquet = sum(np.minimum(np.diff(np.append([0], xsorted)), nmu))
-        # For numpy >= 1.16
-        # gchoquet = F2(F1(np.diff(xsorted,prepend=[0]),nmu))
+    x = np.array(x)
+    mu = np.array(mu)
 
-        if verbose:
-            print("X:", x, "X sorted:", xsorted)
-            print("mu", mu, "Mu sorted:", musorted)
-            print("Lambda:", l)
-            print("Generated measures:", nmu)
-            print("Choquet:", gchoquet)
+    sortedindex = np.argsort(x)
+    xsorted = np.take(x, sortedindex)
+    musorted = np.take(mu, sortedindex)
 
-        return gchoquet
+    if l is None:
+        l = bisectionLien(FLambda, mu)
+    nmu = generateGMeasure(musorted, l)
 
-    def GeneralizedChoquetLambda(self, F1, F2, x, mu, l=None, verbose=False):
-        """Choquet Lambda integral
+    gchoquet = F2(F1(np.diff(np.append([0], xsorted)), nmu))
+    # For numpy >= 1.16
+    # gchoquet = F2(F1(np.diff(xsorted,prepend=[0]),nmu))
 
-        :param x: values
-        :param mu: fuzzy measure
-        :param F1: Function1
-        :param F2: Function2
-        :param l: value of lambda, if None (Default) it's get calculated
-        :param verbose: If true prints data to the console
+    if verbose:
+        print("X:", x, "X sorted:", xsorted)
+        print("mu", mu, "Mu sorted:", musorted)
+        print("Lambda:", l)
+        print("Generated measures:", nmu)
+        print("Choquet:", gchoquet)
 
-        :rtype: Generalized Choquet lambda-Integral with lambda computed based on :math:`\\mu`
+    return gchoquet
 
-        :math:`CFI(x)_{\\mu} = F2_{i=1}^{n}F1(f(x_{\\sigma_i})-f(x_{\\sigma_{(i-1)}})),g(A_j))`.
 
-        """
+def SugenoLambda(x, mu, l=None, verbose=False):
+    """Sugeno Lambda integral
 
-        x = np.array(x)
-        mu = np.array(mu)
+    :param x: values
+    :param mu: fuzzy measure
+    :param l: value of lambda, if None (Default) it's get calculated
+    :param verbose: If true prints data to the console
 
-        sortedindex = np.argsort(x)
-        xsorted = np.take(x, sortedindex)
-        musorted = np.take(mu, sortedindex)
+    :rtype: Sugeno lambda-Integral with lambda computed based on :math:`\\mu`
 
-        if l is None:
-            l = bisectionLien(self.FLambda, mu)
-        nmu = generateGMeasure(musorted, l)
+    :math:`SFI(x)_{\\mu} = \\displaystyle\\wedge_{i=1}^{n}\\vee(f(x_{\\sigma_i}),g(A_j))`.
 
-        gchoquet = F2(F1(np.diff(np.append([0], xsorted)), nmu))
-        # For numpy >= 1.16
-        # gchoquet = F2(F1(np.diff(xsorted,prepend=[0]),nmu))
+    """
 
-        if verbose:
-            print("X:", x, "X sorted:", xsorted)
-            print("mu", mu, "Mu sorted:", musorted)
-            print("Lambda:", l)
-            print("Generated measures:", nmu)
-            print("Choquet:", gchoquet)
+    x = np.array(x)
+    mu = np.array(mu)
 
-        return gchoquet
+    sortedindex = np.argsort(x)
+    xsorted = np.take(x, sortedindex)
+    musorted = np.take(mu, sortedindex)
 
-    def SugenoLambda(self, x, mu, l=None, verbose=False):
-        """Sugeno Lambda integral
+    if l is None:
+        l = bisectionLien(FLambda, mu)
+    nmu = generateGMeasure(musorted, l)
 
-        :param x: values
-        :param mu: fuzzy measure
-        :param l: value of lambda, if None (Default) it's get calculated
-        :param verbose: If true prints data to the console
+    sugeno = max([min(a, b) for a, b in zip(xsorted, nmu)])
 
-        :rtype: Sugeno lambda-Integral with lambda computed based on :math:`\\mu`
+    if verbose:
+        print("X:", x, "X sorted:", xsorted)
+        print("mu", mu, "Mu sorted:", musorted)
+        print("Lambda:", l)
+        print("Generated measures:", nmu)
+        print("Sugeno:", sugeno)
 
-        :math:`SFI(x)_{\\mu} = \\displaystyle\\wedge_{i=1}^{n}\\vee(f(x_{\\sigma_i}),g(A_j))`.
+    return sugeno
 
-        """
 
-        x = np.array(x)
-        mu = np.array(mu)
+def GeneralizedSugenoLambda(F1, F2, x, mu, l=None, verbose=False):
+    """Generalized Sugeno Lambda integral
 
-        sortedindex = np.argsort(x)
-        xsorted = np.take(x, sortedindex)
-        musorted = np.take(mu, sortedindex)
+    :param x: values
+    :param mu: fuzzy measure
+    :param l: value of lambda, if None (Default) it's get calculated
+    :param verbose: If true prints data to the console
 
-        if l is None:
-            l = bisectionLien(self.FLambda, mu)
-        nmu = generateGMeasure(musorted, l)
+    :rtype: Generalized Sugeno lambda-Integral with lambda computed based on :math:`\\mu`
 
-        sugeno = max([min(a, b) for a, b in zip(xsorted, nmu)])
+    :math:`SFI(x)_{\\mu} = F2_{i=1}^{n}F1(f(x_{\\sigma_i}),g(A_j))`.
 
-        if verbose:
-            print("X:", x, "X sorted:", xsorted)
-            print("mu", mu, "Mu sorted:", musorted)
-            print("Lambda:", l)
-            print("Generated measures:", nmu)
-            print("Sugeno:", sugeno)
+    """
 
-        return sugeno
+    x = np.array(x)
+    mu = np.array(mu)
 
-    def GeneralizedSugenoLambda(self, F1, F2, x, mu, l=None, verbose=False):
-        """Generalized Sugeno Lambda integral
+    sortedindex = np.argsort(x)
+    xsorted = np.take(x, sortedindex)
+    musorted = np.take(mu, sortedindex)
 
-        :param x: values
-        :param mu: fuzzy measure
-        :param l: value of lambda, if None (Default) it's get calculated
-        :param verbose: If true prints data to the console
+    if l is None:
+        l = bisectionLien(FLambda, mu)
+    nmu = generateGMeasure(musorted, l)
 
-        :rtype: Generalized Sugeno lambda-Integral with lambda computed based on :math:`\\mu`
+    gsugeno = F2([F1(a, b) for a, b in zip(xsorted, nmu)])
 
-        :math:`SFI(x)_{\\mu} = F2_{i=1}^{n}F1(f(x_{\\sigma_i}),g(A_j))`.
+    if verbose:
+        print("X:", x, "X sorted:", xsorted)
+        print("mu", mu, "Mu sorted:", musorted)
+        print("Lambda:", l)
+        print("Generated measures:", nmu)
+        print("Sugeno:", gsugeno)
 
-        """
+    return gsugeno
 
-        x = np.array(x)
-        mu = np.array(mu)
 
-        sortedindex = np.argsort(x)
-        xsorted = np.take(x, sortedindex)
-        musorted = np.take(mu, sortedindex)
+def FLambda(l, mu):
+    """
+    :param l: lambda
+    :param mu: fuzzy measure (numpy array)
 
-        if l is None:
-            l = bisectionLien(self.FLambda, mu)
-        nmu = generateGMeasure(musorted, l)
+    :rtype: F(l)
 
-        gsugeno = F2([F1(a, b) for a, b in zip(xsorted, nmu)])
+    :math:`F(\\lambda) = \\displaystyle\\prod_{j=1}^{n}(1+\\lambda * \\mu_{j}) - \\lambda -1`."""
+    # print(l,mu,np.product((mu*l)+1.0)-l-1)
+    return np.product((mu * l) + 1.0) - l - 1
+    # f = 1
+    # for m in mu:
+    #    f *= (1+m*l)
+    # f += -l-1
+    # return f
 
-        if verbose:
-            print("X:", x, "X sorted:", xsorted)
-            print("mu", mu, "Mu sorted:", musorted)
-            print("Lambda:", l)
-            print("Generated measures:", nmu)
-            print("Sugeno:", gsugeno)
 
-        return gsugeno
-
-    def FLambda(self, l, mu):
-        """
-        :param l: lambda
-        :param mu: fuzzy measure (numpy array)
-
-        :rtype: F(l)
-
-        :math:`F(\\lambda) = \\displaystyle\\prod_{j=1}^{n}(1+\\lambda * \\mu_{j}) - \\lambda -1`."""
-        # print(l,mu,np.product((mu*l)+1.0)-l-1)
-        return np.product((mu * l) + 1.0) - l - 1
-        # f = 1
-        # for m in mu:
-        #    f *= (1+m*l)
-        # f += -l-1
-        # return f
-
-    def DFlambda(self, l, mu):
-        """:math:`F'(\\lambda) = \\sigma_{i}\\mu_{i}\\displaystyle\\prod_{j=1 not i}^{n}(1+\\lambda * \\mu_{j}) - 1`."""
-        df = -1
-        for i in range(len(mu)):
-            p = mu[i]
-            for j in range(len(mu)):
-                if i != j:
-                    p *= (1 + mu[j] * l)
-            df += p
-        return df
+def DFlambda(l, mu):
+    """:math:`F'(\\lambda) = \\sigma_{i}\\mu_{i}\\displaystyle\\prod_{j=1 not i}^{n}(1+\\lambda * \\mu_{j}) - 1`."""
+    df = -1
+    for i in range(len(mu)):
+        p = mu[i]
+        for j in range(len(mu)):
+            if i != j:
+                p *= (1 + mu[j] * l)
+        df += p
+    return df
 
 
 def FLambda(l, mu):
@@ -282,7 +284,6 @@ def F2(l, mu):
 
 
 if __name__ == "__main__":
-    FI = FIntegrals()
     mu = [0.624801, 0.029406, 0.326642, 0.374676]
     x = [6, 3, 9, 2]
-    FI.ChoquetLambda(x, mu, True)
+    ChoquetLambda(x, mu, True)
