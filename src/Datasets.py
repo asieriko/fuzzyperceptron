@@ -6,6 +6,7 @@ Created on Thu Aug  6 13:36:07 2020
 @author: asier_urio
 """
 import os
+import json
 
 import pandas as pd
 from sklearn.preprocessing import minmax_scale
@@ -41,12 +42,18 @@ def generatefolds():
                 folds[t[0]][i].append([list(train_index),list(test_index)])
 
     # json.dumps(folds)
+    with open("DataFolds.json", "w") as dfolds:
+        json.dump(folds, dfolds, indent = 4)
     print(folds)
     # pickle.dump(folds,open("DataFolds.py","w"))
 
 
 def Folds(dataset,repetition):
-    return DataFolds[dataset][repetition]
+    with open("DataFolds.json", "r") as dfolds:
+        DataFolds = json.load(dfolds)
+
+    print(dataset,repetition)
+    return DataFolds[dataset][str(repetition)]
 
 # https://fizyka.umk.pl/kis-old/projects/datasets.html
 # + Appendicitis 106 - 7 numerical

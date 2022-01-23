@@ -11,6 +11,60 @@ import numpy as np
 from src.utils import bisectionLien, generateGMeasure
 
 
+def generate_cardinality(N, p=1):
+    '''
+    https://github.com/Fuminides/Fancy_aggregations/blob/master/Fancy_aggregations/integrals.py
+    Generate the cardinality measure for a N-sized vector.
+    '''
+    return [(x/ N)**p for x in np.arange(N, 0, -1)]
+
+
+def generate_cardinality_matrix(matrix_shape, axis=0, p=1):
+    '''
+    Generate the cardinality measure for a N-sized vector, and returns it in a matrix shape.
+    Use this if you cannot broadcast generate_cardinality() correctly.
+    N and matrix_shape must be coherent (matrix_shape[0] == N)
+    '''
+    N = matrix_shape[axis]
+    res = np.zeros(matrix_shape)
+    res = np.swapaxes(res, 0, axis)
+    dif_elements = [(x/ N)**p for x in np.arange(N, 0, -1)]
+
+    for ix, elements in enumerate(dif_elements ):
+        res[ix,...] = dif_elements[ix]
+
+    res = np.swapaxes(res, 0, axis)
+    return res
+
+def ChoquetCardinal(x):
+    '''
+    Parameters
+    ----------
+    x: input tensor:
+    x = [[a,b,c,d]]
+    or
+    x = [[a,b,c,d],[e,f,g,h]]
+
+    Returns
+    -------
+    Choquet Integral using cardinality
+    [[Ch]]
+    [[Ch],[Ch]]
+
+    '''
+    nmu = generate_cardinality(len(x[0]))
+    print(nmu)
+    xsorted = x.sort().values
+    print(xsorted)
+
+    diff = torch.sub(xsorted[:, 1:], xsorted[:, 0:-1])
+    diff = torch.cat((xsorted[:, 0:1], diff), 1)
+    nmut = torch.Tensor(nmu)
+    ddotnm = torch.mul(diff, nmut)
+    choquet = torch.sum(ddotnm, 1)
+    return choquet.unsqueeze(1)
+
+
 def ChoquetGeneric(F, *args):
     return F(*args)
 
@@ -41,6 +95,61 @@ def ChoquetTorch(x, mu):
         choquet += xsorted.values[i] * w[i]
 
 
+def ChoquetLambdaT(x, mu, l=None, verbose=False):
+    """Choquet Lambda integral
+
+    :param x: values torch.tensor
+    :param mu: fuzzy measure torch.tensor
+    :param l: value of lambda, if None (Default) it's get calculated
+    :param verbose: If true prints data to the console
+
+    :rtype: Choquet lambda-Integral with lambda computed based on :math:`\\mu`
+
+
+    :math:`CFI(x)_{\\mu} = \\displaystyle\\sum_{i=1}^{n}(f(x_{\\sigma_i})-f(x_{\\sigma_{(i-1)}}))* g(A_j)`.
+
+    """
+    # print("ChoquetLambdaT")
+    # The slowest run took 11.45 times longer than the fastest. This could mean that an intermediate result is being cached.
+    # 100000 loops, best of 5: 12.1 µs per loop
+    sortedindex = x.argsort()
+    xsorted = torch.gather(x, 0, sortedindex)
+    mue = mu.squeeze(1).repeat(1,len(x), 1).squeeze(0)
+    musorted = torch.gather(mue, 1, sortedindex)
+
+
+
+    # The slowest run took 9.05 times longer than the fastest. This could mean that an intermediate result is being cached.
+    # 10000 loops, best of 5: 51.2 µs per loop
+    # sortedindex = list(zip(x, mu))
+    # sortedindex.sort()  # key=lambda x: x[0]
+    # xsorted, musorted = zip(*sortedindex)
+    # xsorted, musorted = torch.stack(xsorted), torch.stack(musorted)
+
+    if l is None:
+        l = bisectionLien(FLambda, np.array(mu))
+
+    nmu = musorted#generateGMeasure(musorted, l)
+    nmu = list(map(generateGMeasure, musorted, [l for _ in range(len(nmu))])) # FIXME: When only one input this is not ok
+
+    # choquet = sum(np.diff(np.append([0], xsorted)) * nmu) # Twice as slow
+    diff = torch.sub(xsorted[:, 1:], xsorted[:, 0:-1])
+    diff = torch.cat((xsorted[:,0:1], diff), 1)
+    nmut = torch.Tensor(nmu)
+    ddotnm = torch.mul(diff,nmut)
+    choquet = torch.sum(ddotnm,1)
+    # FIXME only 1D on 1.9.0 choquet = torch.dot(torch.diff(xsorted, prepend=torch.zeros(x.size())), torch.Tensor(nmu))
+
+    if verbose:
+        print("X:", x, "X sorted:", xsorted)
+        print("mu", mu, "Mu sorted:", musorted)
+        print("Lambda:", l)
+        print("Generated measures:", nmu)
+        print("Choquet:", choquet)
+
+    return choquet
+
+
 def ChoquetLambda(x, mu, l=None, verbose=False):
     """Choquet Lambda integral
 
@@ -67,6 +176,8 @@ def ChoquetLambda(x, mu, l=None, verbose=False):
     sortedindex.sort()  # key=lambda x: x[0]
     xsorted, musorted = zip(*sortedindex)
     xsorted, musorted = np.array(xsorted), np.array(musorted)
+
+    # FIXME: Qué pasa cuando x es multidimensional (varios casos) con mu?
 
     if l is None:
         l = bisectionLien(FLambda, mu)
@@ -272,6 +383,7 @@ def DFlambda(l, mu):
 
 def FLambda(l, mu):
     """:math:`F(\\lambda) = \\displaystyle\\prod_{j=1}^{n}(1+\\lambda * \\mu_{j}) - \\lambda -1`."""
+    # print(l,mu)
     f = 1
     for m in mu:
         f *= (1 + m * l)

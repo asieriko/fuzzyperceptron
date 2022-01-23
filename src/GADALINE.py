@@ -8,6 +8,7 @@ Created on Fri Oct 23 12:02:33 2020
 
 import csv
 import os
+import math
 from functools import partial
 
 import numpy as np
@@ -21,6 +22,7 @@ import matplotlib.pyplot as plt
 
 from Datasets import Datasets, Folds
 from utils import LogStats
+from FIntegrals import ChoquetCardinal
 
 """
 Function definitions for the generalized adaline operator
@@ -192,6 +194,34 @@ def fGADALINE(x, w, t, g, B, F):
     return F(B(g(x, w), t))
 
 
+class BaseN(nn.Module):
+
+    def __init__(self):
+        super().__init__()
+
+    def fit(self,x_train,y_train,criterion,optimizer,epochs):
+        #optimizer = torch.optim.SGD(model.parameters(), lr=0.9, momentum=0.5)
+        losses = []
+        for i in range(epochs):
+            # for xt,yt in zip(xdata,ydata):
+            xt, yt = x_train, y_train
+            ypred = self(xt)
+            loss = criterion(ypred, yt)
+            losses.append(loss)
+
+            optimizer.zero_grad()
+            loss.backward()
+            optimizer.step()
+
+    def test(self,x_test,y_test):
+        # No grad?
+        y_test_pred = self(torch.Tensor(x_test))
+        y_test_pred = torch.squeeze(y_test_pred)
+        predicted = y_test_pred.ge(.5).view(-1)
+        expected = torch.Tensor(y_test).eq(1).view(-1)
+        return (expected == predicted).sum().float(), len(y_test)
+
+
 class NewGADALINE(nn.Module):
     """
     Generalized Adaline Operator
@@ -204,16 +234,57 @@ class NewGADALINE(nn.Module):
         self.weight = nn.Parameter(torch.zeros(input_size, output_size,
                                                dtype=torch.float), requires_grad=True)
         # Addedd output size in bias for hidden layers
-        # self.bias = nn.Parameter(torch.zeros(input_size,output_size, dtype=torch.float),requires_grad=True)
+        #  self.weight = Parameter(torch.Tensor(out_features, in_features))
         self.bias = nn.Parameter(torch.zeros(input_size, output_size, dtype=torch.float), requires_grad=True)
+        #  self.bias = Parameter(torch.Tensor(out_features, in_features))
         self.g = g
         self.B = B
         self.F = F
+        # self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
+            bound = 1 / math.sqrt(fan_in)
+            nn.init.uniform_(self.bias, -bound, bound)
 
     def forward(self, x):
         output = fGADALINE(x, self.weight, self.bias, self.g, self.B, self.F)
         output = torch.sigmoid(output)
         return output
+
+
+class ChADALINE(nn.Module):
+    """
+    Generalized Adaline Operator Using Chqoquet Integral instead of the sum (integrating the  products of weights and inputs)
+    :math:`P_{\\vec{\\omega}, \\vec{\\theta}}^{g,B,F} (x_1,...,x_n) = ChI(B_1(g_1(\\omega_1,x_1),\\theta_1),...,B_n(g_n(\\omega_n,x_n),\\theta_n))`.
+    """
+
+    def __init__(self, input_size, output_size):
+        super().__init__()
+        self.num_features = input_size
+        self.weight = nn.Parameter(torch.zeros(input_size, output_size,
+                                               dtype=torch.float), requires_grad=True)
+        #  self.weight = Parameter(torch.Tensor(out_features, in_features))
+        self.bias = nn.Parameter(torch.zeros(input_size, output_size, dtype=torch.float), requires_grad=True)
+        #  self.bias = Parameter(torch.Tensor(out_features, in_features))
+        # self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
+            bound = 1 / math.sqrt(fan_in)
+            nn.init.uniform_(self.bias, -bound, bound)
+
+    def forward(self, x):
+        output = torch.mul(x, self.weight.t())
+        output = torch.add(output, self.bias.t())
+        output = ChoquetCardinal(output)
+        output = torch.sigmoid(output)
+        return output
+
 
 
 class GADALINE(nn.Module):
@@ -227,10 +298,20 @@ class GADALINE(nn.Module):
         self.num_features = input_size
         self.weight = nn.Parameter(torch.zeros(input_size, output_size,
                                                dtype=torch.float), requires_grad=True)
+        #  self.weight = Parameter(torch.Tensor(out_features, in_features))
         self.bias = nn.Parameter(torch.zeros(input_size, output_size, dtype=torch.float), requires_grad=True)
+        #  self.bias = Parameter(torch.Tensor(out_features, in_features))
         self.g = g
         self.B = B
         self.F = F
+        # self.reset_parameters()
+
+    def reset_parameters(self) -> None:
+        nn.init.kaiming_uniform_(self.weight, a=math.sqrt(5))
+        if self.bias is not None:
+            fan_in, _ = nn.init._calculate_fan_in_and_fan_out(self.weight)
+            bound = 1 / math.sqrt(fan_in)
+            nn.init.uniform_(self.bias, -bound, bound)
 
     def forward(self, x):
         output = self.g(x, self.weight.t())
@@ -349,6 +430,8 @@ def NNtrain(xdata, ydata, model):
         optimizer.zero_grad()
         loss.backward()
         optimizer.step()
+
+        # print(i,loss)
 
     return model
 
@@ -471,22 +554,6 @@ def test(x_test, y_test, model):
     return succ, total
 
 
-ds = Datasets()
-
-run = "-folds-25-02-2021"
-
-datasets = [["GermanCredit", ds.GermanCredit, 75.4, 73.1],
-            ["Breast Cancer W", ds.BreastCancerWisconsin, 96.1, 96.5],
-            ["Breast Cancer", ds.BreastCancer, 71.3, 75.3],
-            ["Statlog HD", ds.StatLogHeart2, 84.5, 82.9],
-            ["Appendicitis", ds.Appendicitis, 85.8, 85.8]]
-
-datasetsnoonline = [["Diabetes", ds.Diabetes, 73.6, 76.8],
-                    ["Cleveland HD ", ds.KaggleClevelandHD, 83.5, 82.1]]
-# dsthyroid = ["Thyroid",ds.Thyroid,97.4,96.2]
-datasets += datasetsnoonline
-
-
 def train_dataset(x, y, model, k=10, r=10):
     avg = []
     for i in range(r):
@@ -507,7 +574,14 @@ def train_dataset(x, y, model, k=10, r=10):
     return np.average(avg)
 
 
-def testGADALINE():
+def pGADALINE(datasets,run):
+    tgadaline = partial(testGADALINE,run=run)
+    from concurrent.futures import ProcessPoolExecutor
+    with ProcessPoolExecutor(max_workers=6) as executor:
+        executor.map(tgadaline, datasets)
+
+
+def testGADALINE(datasets,run):
     for model in ["SLP", "MLP"]:
         ptm = SLP if model == "SLP" else MLP
         for t in datasets:
@@ -522,19 +596,22 @@ def testGADALINE():
                 avgfold = []
                 for train_index, test_index in Folds(t[0],i):
                     m, suc, total = bFolds(x, y, train_index, test_index, ptm)
-                    avgfold.append((suc / total).tolist())
-                avg.append(avgfold*100)
-                print(t[0],i,avgfold)
-            # print(avg)
-            print("{}: {} repetitions: {}% accuracy".format(t[0],i+1,np.average(avg)))
-            with open(os.path.join("..", "Results", t[0] + run + ".csv"), "a") as f:
-                fwriter = csv.writer(f, delimiter=",")
-                fwriter.writerow([t[0], model, "", "", "", np.average(avg)])
+                    avgfold.append((suc*100 / total).tolist())
+                avg.append(avgfold)
+                print(t[0],model,i,np.average(avgfold),avgfold)
+                # print(avg)
+                with open(os.path.join("..", "Results", t[0] + run + ".csv"), "a") as f:
+                    fwriter = csv.writer(f, delimiter=",")
+                    fwriter.writerow([t[0], i, model,"", "", np.average(avgfold)]+avgfold)
+                with open(os.path.join("..", "Results", run + ".csv"), "a") as f:
+                    fwriter = csv.writer(f, delimiter=",")
+                    fwriter.writerow([t[0], i, model,"", "", np.average(avgfold)]+avgfold)
+            print("{}: {} repetitions: {}% accuracy".format(t[0], i + 1, np.average(avg)))
             plt.show()
             xd.append(model)
             yd.append(np.average(avg))
 
-    print("------ MGADALINE -----")
+    print("------ GADALINE -----")
 
     # print("-- Comprobar: g = *, B = +, F = + -- ")
     # gadaline = partial(GADALINE,dot,torch.add,msum)
@@ -548,7 +625,8 @@ def testGADALINE():
         for gi in g:
             for Bi in B:
                 for Fi in F:
-                    print("gi = {}\tBi = {}\tFi = {}".format(gi.__name__, Bi.__name__, Fi.__name__))
+                    cfun = "gi = {}\tBi = {}\tFi = {}".format(gi.__name__, Bi.__name__, Fi.__name__)
+                    print(cfun)
                     plotname = t[0] + " - gi = {}\nBi = {}\nFi = {}\n".format(gi.__name__, Bi.__name__, Fi.__name__)
                     gadaline = partial(MLGADALINE, gi, Bi, Fi)
                     avg = []
@@ -561,13 +639,95 @@ def testGADALINE():
                             m, suc, total = bFolds(x, y, train_index, test_index, gadaline)
                             avgfold.append((suc*100 / total).tolist())
                         avg.append(avgfold)
-                        print(t[0], i, avgfold)
+                        print(t[0],cfun, i,np.average(avgfold), avgfold)
                         with open(os.path.join("..", "Results", t[0] + run + ".csv"), "a") as f:
                             fwriter = csv.writer(f, delimiter=",")
                             fwriter.writerow(
-                                [t[0], "M3GADALINE", gi.__name__, Bi.__name__, Fi.__name__, np.average(avg)])
+                                [t[0], "GADALINE", gi.__name__, Bi.__name__, Fi.__name__, np.average(avgfold)]+avgfold)
+                        with open(os.path.join("..", "Results", run + ".csv"), "a") as f:
+                            fwriter = csv.writer(f, delimiter=",")
+                            fwriter.writerow(
+                                [t[0], "GADALINE", gi.__name__, Bi.__name__, Fi.__name__, np.average(avgfold)]+avgfold)
                     print("{}: {} repetitions: {}% accuracy".format(t[0], i + 1, np.average(avg)))
 
+
+
+def alphabetaGADALINE(datasets,run):
+    # for model in ["SLP", "MLP"]:
+    #     ptm = SLP if model == "SLP" else MLP
+    #     for t in datasets:
+    #         xd = []
+    #         yd = []
+    #         print("-- " + t[0] + " -- ")
+    #         print("------ {}: Base -----".format(model))
+    #         plotname = t[0] + " - " + model
+    #         x, y = t[1]()
+    #         avg = []
+    #         for i in range(10):
+    #             avgfold = []
+    #             for train_index, test_index in Folds(t[0],i):
+    #                 m, suc, total = bFolds(x, y, train_index, test_index, ptm)
+    #                 avgfold.append((suc*100 / total).tolist())
+    #             avg.append(avgfold)
+    #             print(t[0],model,i,np.average(avgfold),avgfold)
+    #             # print(avg)
+    #             with open(os.path.join("..", "Results", t[0] + run + ".csv"), "a") as f:
+    #                 fwriter = csv.writer(f, delimiter=",")
+    #                 fwriter.writerow([t[0], i, model,"", "", np.average(avgfold)]+avgfold)
+    #             with open(os.path.join("..", "Results", run + ".csv"), "a") as f:
+    #                 fwriter = csv.writer(f, delimiter=",")
+    #                 fwriter.writerow([t[0], i, model,"", "", np.average(avgfold)]+avgfold)
+    #         print("{}: {} repetitions: {}% accuracy".format(t[0], i + 1, np.average(avg)))
+    #         plt.show()
+    #         xd.append(model)
+    #         yd.append(np.average(avg))
+
+    print("------ GADALINE -----")
+
+    # print("-- Comprobar: g = *, B = +, F = + -- ")
+    # gadaline = partial(GADALINE,dot,torch.add,msum)
+    # m, stats = Folds(x, y, gadaline)#, len(y))
+    # with open(t[0]+run+".csv", "a") as f:
+    #     fwriter = csv.writer(f,delimiter=",")
+    #     fwriter.writerow([t[0],"GADALINE","dot","add","msum",stats.average(),stats.elapsed()])
+    pond = []
+    for a in [0.1,0.25,0.5,0.75,0.9]:
+        for b in [0.1, 0.25, 0.5, 0.75, 0.9]:
+            pond.append([a,b])
+    for t in datasets:
+        # print("t:",t)
+        # print("t1:",t[0][1])
+        x, y = t[0][1]()
+        print("-- Functions -- ")
+        Bi = torch.add
+        Fi = msum2
+        for p in pond:
+                    gi = lambda x, y: p[0]*m2max(x,y)+p[1]*mavg(x,y)
+                    cfun = "gi = {}\tBi = {}\tFi = {}".format(gi.__name__, Bi.__name__, Fi.__name__)
+                    # print(cfun)
+                    print("alpha: {} - beta: {}".format(p[0],p[1]))
+                    plotname = t[0][0] + " - gi = {}\nBi = {}\nFi = {}\n".format(gi.__name__, Bi.__name__, Fi.__name__)
+                    gadaline = partial(MLGADALINE, gi, Bi, Fi)
+                    avg = []
+                    for i in range(10):
+                        avgfold = []
+                        for train_index, test_index in Folds(t[0][0],i):
+                            x_train, x_test = x[train_index], x[test_index]
+                            y_train, y_test = y[train_index], y[test_index]
+                            # _, sucpt, totpt = bFolds(x_train, y_train, x_test, y_test, m)
+                            m, suc, total = bFolds(x, y, train_index, test_index, gadaline)
+                            avgfold.append((suc*100 / total).tolist())
+                        avg.append(avgfold)
+                        print(t[0],cfun, i,np.average(avgfold), avgfold)
+                        with open(os.path.join("..", "Results", t[0][0] + run + ".csv"), "a") as f:
+                            fwriter = csv.writer(f, delimiter=",")
+                            fwriter.writerow(
+                                [t[0], "GADALINE", gi.__name__, Bi.__name__, Fi.__name__,p[0],p[1], np.average(avgfold)]+avgfold)
+                        with open(os.path.join("..", "Results", run + ".csv"), "a") as f:
+                            fwriter = csv.writer(f, delimiter=",")
+                            fwriter.writerow(
+                                [t[0], "GADALINE", gi.__name__, Bi.__name__, Fi.__name__,p[0],p[1], np.average(avgfold)]+avgfold)
+                    print("{}: {} repetitions: {}% accuracy".format(t[0][0], i + 1, np.average(avg)))
 
 def thyroid():
     print(" ----- SLP: Base ---- ")
@@ -590,6 +750,45 @@ def thyroid():
                         ["Thyroid", "GADALINE", gi.__name__, Bi.__name__, Fi.__name__, stats.average(),
                          stats.elapsed()])
 
+def chqouet(t):
+    print(t)
+    x, y = t[1]()
+    avg = []
+    model = ChADALINE
+    for i in range(10):
+        avgfold = []
+        for train_index, test_index in Folds(t[0], i):
+            m, suc, total = bFolds(x, y, train_index, test_index, model)
+            avgfold.append((suc * 100 / total).tolist())
+        avg.append(avgfold)
+        print(t[0], model, i, np.average(avgfold), avgfold)
+        # print(avg)
+        with open(os.path.join("..", "Results", t[0] + run + ".csv"), "a") as f:
+            fwriter = csv.writer(f, delimiter=",")
+            fwriter.writerow([t[0], i, model, "", "", np.average(avgfold)] + avgfold)
+        with open(os.path.join("..", "Results", run + ".csv"), "a") as f:
+            fwriter = csv.writer(f, delimiter=",")
+            fwriter.writerow([t[0], i, model, "", "", np.average(avgfold)] + avgfold)
+    print("{}: {} repetitions: {}% accuracy".format(t[0], i + 1, np.average(avg)))
 
 if __name__=="__main__":
-    testGADALINE()
+    ds = Datasets()
+
+    run = "xx-folds-21-03-2021"
+    run = "choquet-30-07-2021"
+
+    datasets = [[["GermanCredit", ds.GermanCredit, 75.4, 73.1]],
+                [["Breast Cancer W", ds.BreastCancerWisconsin, 96.1, 96.5]],
+                [["Breast Cancer", ds.BreastCancer, 71.3, 75.3]],
+                [["Statlog HD", ds.StatLogHeart2, 84.5, 82.9]],
+                [["Appendicitis", ds.Appendicitis, 85.8, 85.8]]]
+
+    datasetsnoonline = [[["Diabetes", ds.Diabetes, 73.6, 76.8]],
+                        [["Cleveland HD ", ds.KaggleClevelandHD, 83.5, 82.1]]]
+    # dsthyroid = ["Thyroid",ds.Thyroid,97.4,96.2]
+    datasets += datasetsnoonline
+
+    # testGADALINE(datasets,run)
+    # pGADALINE(datasets,run)
+    # alphabetaGADALINE(datasets,run)
+    chqouet(datasets[0][0])

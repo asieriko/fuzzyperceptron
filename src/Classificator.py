@@ -201,27 +201,10 @@ class Classificator:
 
 # https://stackoverflow.com/questions/14906764/how-to-redirect-stdout-to-both-file-and-console-with-scripting
 
-def run_all():
-    ds = Datasets()
-    fitness_functions = [["Choquet Lambda", FI.ChoquetLambda],
-                         ["Sugeno Lambda", FI.SugenoLambda],
-                         ["Generalized Sugeno Lambda Sum of products",
-                          partial(FI.GeneralizedSugenoLambda, lambda x, y: x * y, sum)],
-                         ["Min Choquet Lambda", FI.MinChoquetLambda]]
-    # appen = ["Appendicitis", ds.Appendicitis]
-    # thyroid = ["Thyroid", ds.Thyroid]
-    datasets = [["Appendicitis", ds.Appendicitis],
-                ["GermanCredit", ds.GermanCredit],
-                ["Breast Cancer Wisconsin", ds.BreastCancerWisconsin],
-                ["Breast Cancer", ds.BreastCancer],
-                ["Diabetes", ds.Diabetes],
-                ["Cleveland HD (Kaggle)", ds.KaggleClevelandHD],
-                ["Heart Disease 2", ds.StatLogHeart2],
-                ["Thyroid Train", ds.ThyroidTrain]]
-
+def run_all(datasets):
     for F in fitness_functions:
         print("------------------ {} ------------- ".format(F[0]))
-        for data in datasets:
+        for data in [datasets]:
             print("------------------ {} ------------- ".format(data[0]))
             classi = Classificator(F[1])
             if data[0] == "Appendicitis":
@@ -237,8 +220,8 @@ def run_all():
                 x, y = data[1]()
                 avg, stats = classi.KFolds(x, y, repetitions=10)
             stats.setExtraFields(["Function", "Dataset"], [F[0], data[0]])
-            stats.saveStatsToFile("../Results/FI_24_02_2021.csv", "FI")
-            print("{} Accuracy: {:.2f}".format(data[0], avg))
+            stats.saveStatsToFile("../Results/FI_11_03_2021.csv", "FI")
+            print("{}_{} -  Accuracy: {:.2f}".format(data[0],F[0],avg))
 
 
 def run_bcw():
@@ -261,7 +244,7 @@ def run_bcw():
             else:
                 avg, stats = classi.KFolds(x, y, repetitions=1)
             stats.setExtraFields(["Function", "Dataset"], [F[0], data[0]])
-            stats.saveStatsToFile("../Results/FI_17_02_2021.csv", "FI")
+            stats.saveStatsToFile("../Results/FI_11_03_2021.csv", "FI")
             logbook = stats.getcustomfield("log")
             # print(log)
             for i, log in enumerate(logbook.values()):
@@ -269,7 +252,7 @@ def run_bcw():
                                    "../Results/" + F[0] + "-" + data[0] + "- Rep" + str(i) + ".png")
                 # for rep,log in enumerate(logbook[k]):
                 #     plotgeneticevolution(log, ["max","avg"],F[0]+"-"+data[0]+"- rep:"+str(rep+1))
-            print("Accuracy: {:.2f}".format(avg))
+            print("{}_{} -  Accuracy: {:.2f}".format(data[0],F[0],avg))
 
 
 def run_choquet_nn():
@@ -282,4 +265,24 @@ def run_choquet_nn():
 
 if __name__ == "__main__":
     # run_bcw()
-    run_all()
+    ds = Datasets()
+    fitness_functions = [["Choquet Lambda", FI.ChoquetLambda],
+                         ["Sugeno Lambda", FI.SugenoLambda],
+                         ["Generalized Sugeno Lambda Sum of products",
+                          partial(FI.GeneralizedSugenoLambda, lambda x, y: x * y, sum)],
+                         ["Min Choquet Lambda", FI.MinChoquetLambda]]
+    # appen = ["Appendicitis", ds.Appendicitis]
+    # thyroid = ["Thyroid", ds.Thyroid]
+    datasets = [["Appendicitis", ds.Appendicitis],
+                ["GermanCredit", ds.GermanCredit],
+                ["Breast Cancer Wisconsin", ds.BreastCancerWisconsin],
+                ["Breast Cancer", ds.BreastCancer],
+                ["Diabetes", ds.Diabetes],
+                ["Cleveland HD (Kaggle)", ds.KaggleClevelandHD],
+                ["Heart Disease 2", ds.StatLogHeart2],
+                ["Thyroid Train", ds.ThyroidTrain]]
+
+
+    from concurrent.futures import ProcessPoolExecutor
+    with ProcessPoolExecutor(max_workers=6) as executor:
+        executor.map(run_all, datasets)

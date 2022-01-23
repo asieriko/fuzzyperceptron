@@ -105,7 +105,7 @@ def bisectionWang(F, DF, W, epsilon=0.000001):
     return (p + m) / 2
 
 
-def bisectionLien(F, W, epsilon=0.000001):
+def bisectionLien(F, W, epsilon=0.00001):
     """
     Simple algorithm for identifying λ-value for fuzzy measures and fuzzy 
     integrals (Chung-Chang Lien & Chie-Bein Chen)
@@ -127,24 +127,34 @@ def bisectionLien(F, W, epsilon=0.000001):
     elif F1 < 1:
         p = 1
         m = 0
-        while F(p, W) < 0:  # antes >= #FIXME: How exactly?
-            # IF F(p) < 0, let m=p,p=p*2 and continue Step 4 (repeat double p until F(0)<0)
+        if F(p, W) < 0:
             m = p
             p = p * 2
+        while F(p, W) < 0:  # antes >= #FIXME: How exactly?
+            # IF F(p) < 0, let m=p,p=p*2 and continue Step 4 (repeat double p until F(0)<0)
+            # print("F",F(p, W))
+            m = p
+            p = p * 2
+            # print("F(p,W)<0",p,W)
     F2 = F((p + m) / 2, W)
     while abs(F2) > epsilon:
+        if p == m:
+            # print(W,p,m)
+            break # FIXME break? if they are equal it becomes and enldess loop
         # print("F2 =",F2,"[p,m]",p,m)
         if F2 > 0:
             p = (p + m) / 2
         elif F2 < 0:
             m = (p + m) / 2
         F2 = F((p + m) / 2, W)
-        # print("F2 ex =",F2,"[p,m]",p,m)
+        # print("F2 ex =",F2,"[p,m]",p,m,)
+        # print(abs(F2),">",epsilon)
     return (p + m) / 2
 
 
 def F(l, mu):
     """:math:`F(\\lambda) = \\displaystyle\\prod_{j=1}^{n}(1+\\lambda * \\mu_{j}) - \\lambda -1`."""
+    # print("F",l,mu)
     p = 1
     for m in mu:
         p *= (1 + m * l)
